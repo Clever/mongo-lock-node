@@ -1,0 +1,14 @@
+# osx / sshfs
+._*
+.DS_Store
+
+# emacs / vim
+*~
+\#*\#
+.\#*
+
+# vendored dependencies
+node_modules
+
+# build folder
+dist
