@@ -2,7 +2,7 @@ import * as MongoClient from "mongodb";
 
 import RWMutex from "../lib/RWMutex";
 
-const MONGO_URL = "mongodb://localhost:27017/test";
+const MONGO_URL = "mongodb://127.0.0.1:27017/test";
 const lockID = "lockID";
 const clientID = "1";
 
@@ -12,17 +12,18 @@ describe("RWMutex", () => {
   beforeAll(async () => {
     const db = await MongoClient.connect(MONGO_URL);
     collection = db.collection("lock_test");
-    return await collection.createIndex("lockID", { unique: true });
   });
 
   // Reset the collection before each test
-  beforeEach(async () => await collection.drop());
+  beforeEach(async () => {
+    await collection.drop();
+    await collection.createIndex("lockID", { unique: true });
+  });
 
   describe(".lock()", () => {
     it("inserts a lock if none exists", async () => {
       const lock = new RWMutex(collection, lockID, clientID);
-      const acquired = await lock.lock();
-      expect(acquired).toBe(true);
+      await lock.lock();
 
       const lockObject = await collection.find({ lockID }).limit(1).next();
       expect(lockObject).not.toBeNull();
