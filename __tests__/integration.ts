@@ -8,17 +8,19 @@ const clientID = "1";
 
 describe("RWMutex", () => {
   // Connect to the database
-  let collection = null;
+  let db; // only used for cleanup
+  let collection;
   beforeAll(async () => {
-    const db = await MongoClient.connect(MONGO_URL);
+    db = await MongoClient.connect(MONGO_URL);
     collection = db.collection("lock_test");
-  });
-
-  // Reset the collection before each test
-  beforeEach(async () => {
-    await collection.drop();
     await collection.createIndex("lockID", { unique: true });
   });
+
+  // Must close the connection or jest will hang
+  afterAll(() => db.close());
+
+  // Reset the collection before each test
+  beforeEach(() => collection.deleteMany({}));
 
   describe(".lock()", () => {
     it("inserts a lock if none exists", async () => {
