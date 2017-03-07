@@ -179,10 +179,8 @@ export default class RWMutex {
     }
 
     if (!lock) {
-      // lock doesn't exist yet, so we should create it. Empty string is considered
-      // lexographically < any other string, so we can use that as the zero value
+      // lock doesn't exist yet, so we should create it
       lock = {
-        lastWriter: "",
         lockID,
         readers: [],
         writer: "",

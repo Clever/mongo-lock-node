@@ -6,7 +6,7 @@ const MONGO_URL = "mongodb://127.0.0.1:27017/test";
 const lockID = "lockID";
 const clientID = "1";
 
-describe("RWMutex", () => {
+describe("Integration Test: RWMutex", () => {
   // Connect to the database
   let db; // only used for cleanup
   let collection;
@@ -31,7 +31,6 @@ describe("RWMutex", () => {
       expect(lockObject).not.toBeNull();
       delete lockObject._id;
       return expect(lockObject).toMatchObject({
-        lastWriter: "",
         lockID,
         readers: [],
         writer: "1",
