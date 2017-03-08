@@ -5,6 +5,7 @@
         "noImplicitAny": false,
         "jsx": "react",
         "lib": ["es2017", "dom"],
+        "outDir": "./dist",
         "typeRoots": [
             "node_modules/@types", "./types"
         ]
