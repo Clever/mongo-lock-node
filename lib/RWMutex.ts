@@ -32,7 +32,6 @@ export default class RWMutex {
    */
   constructor(coll, lockID, clientID, options = { sleepTime: 5000 }) {
     this._coll = coll;
-    // TODO: typecheck these
     this._lockID = lockID;
     this._clientID = clientID;
     this._options = options;
@@ -44,7 +43,7 @@ export default class RWMutex {
    */
   async lock() {
     // provides readable error messages, no need to catch and rethrow
-    const lock = await this._findOrCreateLock(this._lockID);
+    const lock = await this._findOrCreateLock();
 
     // if this clientID already has the lock, we re-enter the lock and return
     if (lock.writer === this._clientID) {
@@ -69,7 +68,7 @@ export default class RWMutex {
           return;
         }
       } catch (err) {
-        throw new Error(`error aquiring lock: ${err.message}`);
+        throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
       }
 
       await timeoutPromise(this._options.sleepTime);
@@ -92,10 +91,10 @@ export default class RWMutex {
         },
       });
     } catch (err) {
-      throw new Error(`error releasing lock: ${err.message}`);
+      throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
     }
     if (result.matchedCount === 0) {
-      throw new Error(`lock not currently held by client: ${this._clientID}`);
+      throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
     }
     return;
   }
@@ -106,7 +105,7 @@ export default class RWMutex {
    */
   async rLock() {
     // provides readable error messages, no need to catch and rethrow
-    const lock = await this._findOrCreateLock(this._lockID);
+    const lock = await this._findOrCreateLock();
     if (lock.readers.indexOf(this._clientID) > -1) {
       // if this clientID is already a reader, we can re-enter the lock here
       return;
@@ -134,7 +133,7 @@ export default class RWMutex {
           return;
         }
       } catch (err) {
-        throw new Error(`error aquiring lock: ${err.message}`);
+        throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
       }
 
       await timeoutPromise(this._options.sleepTime);
@@ -157,10 +156,10 @@ export default class RWMutex {
         },
       });
     } catch (err) {
-      throw new Error(`error releasing lock: ${err.message}`);
+      throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
     }
     if (result.matchedCount === 0) {
-      throw new Error(`lock not currently held by client: ${this._clientID}`);
+      throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
     }
     return;
   }
@@ -170,18 +169,18 @@ export default class RWMutex {
    * @param {string} - unique id of the resource
    * @return {Promise} - resolves with the lock object, rejects with the formatted error
    */
-  async _findOrCreateLock(lockID) {
+  async _findOrCreateLock() {
     let lock;
     try {
       lock = await this._coll.find({ lockID: this._lockID }).limit(1).next();
     } catch (err) {
-      throw new Error(`error finding lock ${lockID}: ${err.message}`);
+      throw new Error(`error finding lock ${this._lockID}: ${err.message}`);
     }
 
     if (!lock) {
       // lock doesn't exist yet, so we should create it
       lock = {
-        lockID,
+        lockID: this._lockID,
         readers: [],
         writer: "",
       };
@@ -193,7 +192,7 @@ export default class RWMutex {
           // set the lock to null
           lock = null;
         } else {
-          throw new Error(`error creating lock for ${lockID}: ${err.message}`);
+          throw new Error(`error creating lock for ${this._lockID}: ${err.message}`);
         }
       }
     }
@@ -203,13 +202,13 @@ export default class RWMutex {
       try {
         lock = await this._coll.find({ lockID: this._lockID }).limit(1).next();
       } catch (err) {
-        throw new Error(`error finding existing lock ${lockID}: ${err.message}`);
+        throw new Error(`error finding existing lock ${this._lockID}: ${err.message}`);
       }
     }
 
     if (!lock) {
       // this should never happen
-      throw new Error(`error finding and creating lock ${lockID}`);
+      throw new Error(`error finding and creating lock ${this._lockID}`);
     }
     return lock;
   }
