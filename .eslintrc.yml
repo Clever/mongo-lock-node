@@ -28,6 +28,7 @@ rules:
       case: { after: true }
     }
   }]
+  no-constant-condition: ["error", {"checkLoops": false}]
   no-labels: [2, { allowLoop: false, allowSwitch: false }]
   no-unused-vars: ["error", { "argsIgnorePattern": "next" }]
   no-param-reassign: 0 # Add back with exceptions when https://github.com/eslint/eslint/issues/6505 is resolved
