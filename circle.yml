@@ -14,3 +14,9 @@ compile:
 test:
   override:
   - make test
+deployment:
+  all:
+    branch: master
+    owner: Clever
+    commands:
+    - $HOME/ci-scripts/circleci/npm-publish $NPM_TOKEN .
