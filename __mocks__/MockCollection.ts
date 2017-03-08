@@ -1,7 +1,7 @@
 function cursor() {
   const j = jest.fn();
   j.limit = jest.fn(() => j);
-  j.next = jest.fn(() => Promise.resolve(null));
+  j.next = jest.fn(() => Promise.resolve({ lockID: "", readers: [], writer: "" }));
   return j;
 }
 

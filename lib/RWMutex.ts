@@ -39,14 +39,25 @@ export default class RWMutex {
 
   /*
    * Acquires the write lock.
+   * @param {callback} - Optional callback
    * @return {Promise} - Promise that resolves when the lock is acquired, rejects if an error occurs
    */
-  async lock() {
-    // provides readable error messages, no need to catch and rethrow
-    const lock = await this._findOrCreateLock();
+  async lock(cb) {
+    let lock;
+    try {
+      lock = await this._findOrCreateLock();
+    } catch (err) {
+      if (typeof cb === "function") {
+        cb(err);
+      }
+      throw err;
+    }
 
     // if this clientID already has the lock, we re-enter the lock and return
     if (lock.writer === this._clientID) {
+      if (typeof cb === "function") {
+        cb();
+      }
       return;
     }
 
@@ -65,10 +76,17 @@ export default class RWMutex {
           },
         });
         if (result.matchedCount > 0) {
+          if (typeof cb === "function") {
+            cb();
+          }
           return;
         }
       } catch (err) {
-        throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        const formattedError = new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        if (typeof cb === "function") {
+          cb(formattedError);
+        }
+        throw formattedError;
       }
 
       await timeoutPromise(this._options.sleepTime);
@@ -77,9 +95,10 @@ export default class RWMutex {
 
   /*
    * Unlocks the write lock. Must have the same lock type
+   * @param {callback} - Optional callback
    * @return {Promise} - Resolves when lock is released, rejects if an error occurs
    */
-  async unlock() {
+  async unlock(cb) {
     let result;
     try {
       result = await this._coll.updateOne({
@@ -91,23 +110,46 @@ export default class RWMutex {
         },
       });
     } catch (err) {
-      throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
+      const formattedError = new Error(`error releasing lock ${this._lockID}: ${err.message}`);
+      if (typeof cb === "function") {
+        cb(formattedError);
+      }
+      throw formattedError;
     }
     if (result.matchedCount === 0) {
-      throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
+      const err = new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
+      if (typeof cb === "function") {
+        cb(err);
+      }
+      throw err;
+    }
+    if (typeof cb === "function") {
+      cb();
     }
     return;
   }
 
   /*
    * Acquires the read lock.
+   * @param {callback} - Optional callback
    * @return {Promise} - Resolves when the lock is acquired, rejects if an error occurs
    */
-  async rLock() {
-    // provides readable error messages, no need to catch and rethrow
-    const lock = await this._findOrCreateLock();
+  async rLock(cb) {
+    let lock;
+    try {
+      lock = await this._findOrCreateLock();
+    } catch (err) {
+      if (typeof cb === "function") {
+        cb(err);
+      }
+      throw err;
+    }
+
     if (lock.readers.indexOf(this._clientID) > -1) {
       // if this clientID is already a reader, we can re-enter the lock here
+      if (typeof cb === "function") {
+        cb();
+      }
       return;
     }
 
@@ -130,10 +172,17 @@ export default class RWMutex {
         // implemenation will break.
         // TODO: option to make it not re-enterable
         if (result.matchedCount > 0) {
+          if (typeof cb === "function") {
+            cb();
+          }
           return;
         }
       } catch (err) {
-        throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        const formattedError = new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        if (typeof cb === "function") {
+          cb(formattedError);
+        }
+        throw formattedError;
       }
 
       await timeoutPromise(this._options.sleepTime);
@@ -142,9 +191,10 @@ export default class RWMutex {
 
   /*
    * Unlocks the read lock. Must have the same lock type
+   * @param {callback} - Optional callback
    * @return {Promise} - Resolves when lock is released, rejects if an error occurs
    */
-  async rUnlock() {
+  async rUnlock(cb) {
     let result;
     try {
       result = await this._coll.updateOne({
@@ -156,10 +206,21 @@ export default class RWMutex {
         },
       });
     } catch (err) {
-      throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
+      const formattedError = new Error(`error releasing lock ${this._lockID}: ${err.message}`);
+      if (typeof cb === "function") {
+        cb(formattedError);
+      }
+      throw formattedError;
     }
     if (result.matchedCount === 0) {
-      throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
+      const err = new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
+      if (typeof cb === "function") {
+        cb(err);
+      }
+      throw err;
+    }
+    if (typeof cb === "function") {
+      cb();
     }
     return;
   }
