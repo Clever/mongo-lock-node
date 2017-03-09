@@ -46,6 +46,7 @@ await lock.rUnlock();
 ## Gotchas
 The current implementation is limited in a few ways. We may address these issues in the future but
 right now you should be aware of them before using this library:
+
 1. Re-enterable locks. RWMutex treats a clientID already existing on the lock in the db as a
    lock that this client owns. It re-enters the lock and proceeds as if you have the lock.
 2. No heartbeat. Our current requirements for this project do not include heartbeats, so any
