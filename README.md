@@ -30,14 +30,14 @@ try {
   console.error(err.message); // => "error acquiring lock lock_1: connection interrupted"
   throw err;
 }
-// do important stuff
+// no other clients acquire a read or write lock while you have the write lock
 console.log("doing important things...");
 // release the write lock
 await lock.unlock();
 
 // acquire the read lock
 await lock.rLock();
-// read important things
+// other clients can also acquire a read lock, no clients can acquire the write lock
 console.log("reading important things...");
 // release the read lock
 await lock.rUnlock();
