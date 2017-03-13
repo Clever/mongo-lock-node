@@ -251,4 +251,37 @@ describe("RWMutex", () => {
       throw new Error("expected unlock to error");
     });
   });
+
+  describe("callback", () => {
+    function methodAcceptsCallback(method, mockCollection, cb) {
+      it(`is accepted by .${method}()`, (done) => {
+        const lock = new RWMutex(mockCollection, lockID, clientID);
+        lock[method]((err) => cb(err, done));
+      });
+    }
+
+    // Success path
+    const happyCollection = new MockCollection();
+    function happyCallback(err, done) {
+      expect(err).toBeFalsy();
+      done();
+    }
+    methodAcceptsCallback("lock", happyCollection, happyCallback);
+    methodAcceptsCallback("unlock", happyCollection, happyCallback);
+    methodAcceptsCallback("rLock", happyCollection, happyCallback);
+    methodAcceptsCallback("rUnlock", happyCollection, happyCallback);
+
+    // Failure path - check error is passed
+    const sadCollection = new MockCollection();
+    sadCollection.find = jest.fn().mockReturnValue(Promise.reject(true));
+    sadCollection.updateOne = jest.fn().mockReturnValue(Promise.reject(true));
+    function sadCallback(err, done) {
+      expect(err).toBeTruthy();
+      done();
+    }
+    methodAcceptsCallback("lock", sadCollection, sadCallback);
+    methodAcceptsCallback("unlock", sadCollection, sadCallback);
+    methodAcceptsCallback("rLock", sadCollection, sadCallback);
+    methodAcceptsCallback("rUnlock", sadCollection, sadCallback);
+  });
 });
