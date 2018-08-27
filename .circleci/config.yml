@@ -4,6 +4,7 @@ jobs:
     working_directory: ~/Clever/mongo-lock-node
     docker:
     - image: circleci/node:8.11.3-stretch
+    - image: circleci/mongo:3.2.20-jessie-ram
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
