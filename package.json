@@ -24,7 +24,7 @@
   "license": "Apache-2.0",
   "devDependencies": {
     "@types/jest": "^18.1.1",
-    "@types/node": "^7.0.4",
+    "@types/node": "^10.12.0",
     "babel-eslint": "^7.1.1",
     "eslint": "3.14.1",
     "eslint-config-airbnb": "^5.0.1",
