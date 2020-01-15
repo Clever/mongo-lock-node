@@ -2,7 +2,7 @@ include node.mk
 .PHONY: all test build lint
 SHELL := /bin/bash
 
-NODE_VERSION := "v10"
+NODE_VERSION := "v12"
 
 TS_FILES := $(shell find . -name "*.ts" -not -path "./node_modules/*" -not -name "*numbro-polyfill.ts")
 
