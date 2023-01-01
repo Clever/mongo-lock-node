@@ -10,3 +10,4 @@
 # vendored dependencies
 node_modules
 
+.git/

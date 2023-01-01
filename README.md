@@ -64,3 +64,4 @@ make test
 # This will compile lib/ to javascript in the dist/ folder
 make build
 ```
+test
