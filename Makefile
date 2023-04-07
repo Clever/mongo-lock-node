@@ -10,8 +10,8 @@ all: test build
 
 lint:
 	@echo "Linting..."
-	@./node_modules/.bin/tslint $(TS_FILES)
-	@./node_modules/.bin/eslint -c .eslintrc.yml $(TS_FILES)
+	@./node_modules/.bin/eslint $(TS_FILES)
+	@./node_modules/.bin/eslint -c .eslintrc.js $(TS_FILES)
 
 test: lint
 	@echo "Testing..."
