@@ -53,7 +53,8 @@ export default class RWMutex {
     // Loop and do the following:
     // 1. attempt to acquire the lock (must have no readers and no writer)
     // 2. if not acquired, sleep and retry
-    while (true) {
+    let acquired = false;
+    while (!acquired) {
       try {
         const result = await this._coll.updateOne({
           lockID: this._lockID,
@@ -65,6 +66,7 @@ export default class RWMutex {
           },
         });
         if (result.matchedCount > 0) {
+          acquired = true;
           return;
         }
       } catch (err) {
@@ -114,7 +116,8 @@ export default class RWMutex {
     // Loop and do the following:
     // 1. attempt to acquire the lock (must have no writer)
     // 2. if not acquired, sleep and retry
-    while (true) {
+    let acquired = false;
+    while (!acquired) {
       // Acquire the lock
       try {
         const result = await this._coll.updateOne({
@@ -130,6 +133,7 @@ export default class RWMutex {
         // implemenation will break.
         // TODO: option to make it not re-enterable
         if (result.matchedCount > 0) {
+          acquired = true;
           return;
         }
       } catch (err) {

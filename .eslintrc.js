@@ -29,7 +29,7 @@ module.exports = {
     sourceType: "module",
     project: "./tsconfig.json",
   },
-  plugins: ["react", "react-hooks", "@typescript-eslint", "@clever"],
+  plugins: ["react", "react-hooks", "@typescript-eslint"],
   rules: {
     camelcase: "off",
     "comma-dangle": ["error", "always-multiline"],
@@ -106,11 +106,6 @@ module.exports = {
     "@typescript-eslint/no-unused-vars": ["error", { args: "none" }],
     "@typescript-eslint/no-use-before-define": "off",
     "@typescript-eslint/no-var-requires": "off",
-    "@clever/no-app-listen-without-localhost": "error",
-    "@clever/no-catch-without-default-handling": "error",
-    "@clever/no-functions-in-map-state-to-props": "error",
-    // TODO: rewrite sending error status code to throwing an exception
-    // "@clever/no-send-status-error": "error",
   },
   overrides: [
     {
