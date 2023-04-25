@@ -4,14 +4,13 @@ SHELL := /bin/bash
 
 NODE_VERSION := "v10"
 
-TS_FILES := $(shell find . -name "*.ts" -not -path "./node_modules/*" -not -name "*numbro-polyfill.ts")
+TS_FILES := $(shell find . -name "*.ts" -not -path "./node_modules/*" -not -name "*numbro-polyfill.ts" -not -path "./__tests__/*" -not -path "./__mocks__/*")
 
 all: test build
 
 lint:
 	@echo "Linting..."
-	@./node_modules/.bin/tslint $(TS_FILES)
-	@./node_modules/.bin/eslint -c .eslintrc.yml $(TS_FILES)
+	@./node_modules/.bin/eslint $(TS_FILES)
 
 test: lint
 	@echo "Testing..."
