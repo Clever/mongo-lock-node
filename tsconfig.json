@@ -1,17 +1,14 @@
 {
-    "compilerOptions": {
-        "module": "commonjs",
-        "target": "es5",
-        "noImplicitAny": false,
-        "jsx": "react",
-        "lib": ["es2017", "dom"],
-        "outDir": "./dist",
-        "typeRoots": [
-            "node_modules/@types", "./types"
-        ]
-    },
-    "exclude": [
-        "node_modules"
-    ],
-    "files": ["lib/index.ts"]
+  "compilerOptions": {
+    "lib": ["dom", "es2019"],
+    "module": "commonjs",
+    "resolveJsonModule": true,
+    "target": "es5",
+    "typeRoots": ["node_modules/@types", "types"],
+    "baseUrl": ".",
+    "paths": {
+      "src/*": ["./src/*"]
+    }
+  },
+  "exclude": ["jest", "node_modules"]
 }

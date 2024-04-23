@@ -1,6 +1,6 @@
 {
   "name": "mongo-lock-node",
-  "version": "0.0.3",
+  "version": "0.1.0",
   "description": "a distributed lock client backed by mongo",
   "main": "dist/index.js",
   "scripts": {
@@ -23,23 +23,24 @@
   "author": "",
   "license": "Apache-2.0",
   "devDependencies": {
-    "@types/jest": "^18.1.1",
-    "@types/node": "^10.12.0",
-    "@typescript-eslint/eslint-plugin": "^5.2.0",
-    "@typescript-eslint/parser": "^5.2.0",
+    "@clever/eslint-plugin": "^0.2.0",
+    "@clever/prettier-config": "^1.0.0",
+    "@types/jest": "^26.0.16",
+    "@types/jquery": "^3.5.14",
+    "@types/node": "^18.16.18",
     "babel-eslint": "^7.1.1",
-    "eslint": "^7.11.0",
-    "eslint-config-airbnb": "^5.0.1",
-    "eslint-config-prettier": "^6.12.0",
-    "eslint-formatter-summary": "^1.1.0",
-    "eslint-plugin-jsx-a11y": "^6.3.1",
-    "eslint-plugin-react": "^7.21.5",
-    "eslint-plugin-react-hooks": "^4.1.2",
-    "jest": "^18.1.0",
-    "mongodb": "^2.2.24",
-    "ts-jest": "^18.0.3"
-  },
-  "dependencies": {
-    "typescript": "^3.9.10"
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^6.15.0",
+    "eslint-plugin-jsx-a11y": "^6.4.1",
+    "eslint-plugin-react": "^7.29.4",
+    "eslint-plugin-react-hooks": "^4.4.0",
+    "jest": "^26.6.3",
+    "mongodb": "6.5",
+    "nodemon": "^2.0.7",
+    "prettier": "2.2.1",
+    "ts-jest": "^26.4.4",
+    "tsconfig-paths": "^3.9.0",
+    "tslint": "^3.15.1",
+    "typescript": "^4.6.3"
   }
 }

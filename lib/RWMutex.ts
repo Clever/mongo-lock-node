@@ -1,9 +1,7 @@
 // Helper function that converts setTimeout to a Promise
 function timeoutPromise(delay) {
   return new Promise((resolve) => {
-    setTimeout(() => {
-      resolve();
-    }, delay);
+    setTimeout(resolve, delay);
   });
 }
 
