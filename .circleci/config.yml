@@ -3,8 +3,8 @@ jobs:
   build:
     working_directory: ~/Clever/mongo-lock-node
     docker:
-    - image: circleci/node:10.12.0-stretch
-    - image: circleci/mongo:3.2.20-jessie-ram
+    - image: cimg/node:18.16
+    - image: circleci/mongo:5.0-focal-ram
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
@@ -17,6 +17,11 @@ jobs:
     - run:
         command: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
         name: Set up CircleCI artifacts directories
+    - run:
+        name: Set up .npmrc
+        command: |
+            sed -i.bak s/\${npm_auth_token}/$NPM_TOKEN/ .npmrc_docker
+            mv .npmrc_docker .npmrc
     - run:
         command: npm install
         name: npm install
