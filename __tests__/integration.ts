@@ -44,7 +44,9 @@ describe("Integration Test: RWMutex", () => {
       try {
         await lock.unlock();
       } catch (err) {
-        return expect(err.message).toEqual("lock lockID not currently held by client: 1");
+        return expect(err.message).toEqual(
+          "lock lockID not currently held by client: 1"
+        );
       }
       throw new Error("expected error to be thrown");
     });
