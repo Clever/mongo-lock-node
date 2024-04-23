@@ -7,7 +7,7 @@
     "typeRoots": ["node_modules/@types", "types"],
     "baseUrl": ".",
     "paths": {
-      "src/*": ["./src/*"]
+      "src/*": ["./lib/*", "./__mocks__/*", "./__tests__/*"]
     }
   },
   "exclude": ["jest", "node_modules"]

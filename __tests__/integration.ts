@@ -14,7 +14,7 @@ describe("Integration Test: RWMutex", () => {
     mongoClient = await MongoClient.connect(MONGO_URL);
     const db = mongoClient.db("test");
     await db.dropDatabase();
-    let collection = await db.createCollection("districtlocks", {
+    collection = await db.createCollection("districtlocks", {
       validator: {
         $jsonSchema: {
           bsonType: "object",
