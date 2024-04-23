@@ -18,6 +18,11 @@ jobs:
         command: mkdir -p $CIRCLE_ARTIFACTS $CIRCLE_TEST_REPORTS
         name: Set up CircleCI artifacts directories
     - run:
+        name: Set up .npmrc
+        command: |
+            sed -i.bak s/\${npm_auth_token}/$NPM_TOKEN/ .npmrc_docker
+            mv .npmrc_docker .npmrc
+    - run:
         command: npm install
         name: npm install
     - run: make build
