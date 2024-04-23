@@ -2,6 +2,8 @@ import {
   Collection as MongoCollection,
   WithId,
   MongoError,
+  InsertOneResult,
+  UpdateResult,
 } from "mongodb";
 
 // Helper function that converts setTimeout to a Promise
@@ -17,6 +19,12 @@ export interface MongoLock {
   writer: string;
 }
 
+export interface MongoLockCollection {
+  findOne: (filter: any) => Promise<WithId<MongoLock>>;
+  insertOne: (doc: MongoLock) => Promise<InsertOneResult<MongoLock>>;
+  updateOne: (filter: any, update: any) => Promise<UpdateResult<MongoLock>>;
+}
+
 /*
  * RWMutex implements a distributed reader/writer lock backed by mongodb. Right now it is limited
  * in a few key ways:
@@ -28,7 +36,7 @@ export interface MongoLock {
  *    constructor must have a unique index on the `lockID` field.
  */
 export default class RWMutex {
-  _coll: MongoCollection<MongoLock>;
+  _coll: MongoLockCollection;
   _lockID: string;
   _clientID: string;
   _options: { sleepTime: number };
@@ -41,7 +49,7 @@ export default class RWMutex {
    * @param {Object} options - lock options
    */
   constructor(
-    coll: MongoCollection<MongoLock>,
+    coll: MongoLockCollection,
     lockID: string,
     clientID: string,
     options = { sleepTime: 5000 }

@@ -10,7 +10,7 @@ describe("RWMutex", () => {
   describe(".lock()", () => {
     it("acquires the lock", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
+      mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(
           Promise.resolve({ lockID, readers: [], writer: "" })
@@ -18,7 +18,7 @@ describe("RWMutex", () => {
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.lock();
 
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID,
@@ -35,7 +35,7 @@ describe("RWMutex", () => {
 
     it("inserts a lock if none exists", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
+      mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(Promise.resolve(null))
         .mockReturnValueOnce(
@@ -44,8 +44,8 @@ describe("RWMutex", () => {
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.lock();
 
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
-      expect(mockCollection.insert).toHaveBeenCalledWith({
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.insertOne).toHaveBeenCalledWith({
         lockID,
         readers: [],
         writer: "",
@@ -66,7 +66,7 @@ describe("RWMutex", () => {
 
     it("waits if the lock is already in use", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
+      mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(
           Promise.resolve({ lockID, readers: [], writer: "different" })
@@ -80,8 +80,8 @@ describe("RWMutex", () => {
       });
       await lock.lock();
 
-      expect(mockCollection.find).toHaveBeenCalledTimes(1);
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
@@ -99,7 +99,7 @@ describe("RWMutex", () => {
 
     it("re-enters the lock if the client id already has the lock", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
+      mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(
           Promise.resolve({ lockID, readers: [], writer: clientID })
@@ -109,9 +109,9 @@ describe("RWMutex", () => {
       });
       await lock.lock();
 
-      expect(mockCollection.find).toHaveBeenCalledTimes(1);
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
-      expect(mockCollection.insert).toHaveBeenCalledTimes(0);
+      expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.insertOne).toHaveBeenCalledTimes(0);
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(0);
     });
   });
@@ -168,7 +168,7 @@ describe("RWMutex", () => {
   describe(".rLock()", () => {
     it("acquires the lock", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
+      mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(
           Promise.resolve({ lockID, readers: [], writer: "" })
@@ -176,7 +176,7 @@ describe("RWMutex", () => {
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.rLock();
 
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID,
@@ -192,7 +192,7 @@ describe("RWMutex", () => {
 
     it("inserts a lock if none exists", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
+      mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(Promise.resolve(null))
         .mockReturnValueOnce(
@@ -201,8 +201,8 @@ describe("RWMutex", () => {
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.rLock();
 
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
-      expect(mockCollection.insert).toHaveBeenCalledWith({
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.insertOne).toHaveBeenCalledWith({
         lockID,
         readers: [],
         writer: "",
@@ -222,7 +222,7 @@ describe("RWMutex", () => {
 
     it("waits if the lock is already in use", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
+      mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(
           Promise.resolve({ lockID, readers: [], writer: "different" })
@@ -236,8 +236,8 @@ describe("RWMutex", () => {
       });
       await lock.rLock();
 
-      expect(mockCollection.find).toHaveBeenCalledTimes(1);
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
@@ -254,23 +254,21 @@ describe("RWMutex", () => {
 
     it("re-enters the lock if the client id already has the lock", async () => {
       const mockCollection = new MockCollection();
-      mockCollection._cursor.next = jest
-        .fn()
-        .mockReturnValueOnce(
-          Promise.resolve({
-            lockID,
-            readers: ["different", clientID],
-            writer: "",
-          })
-        );
+      mockCollection.findOne = jest.fn().mockReturnValueOnce(
+        Promise.resolve({
+          lockID,
+          readers: ["different", clientID],
+          writer: "",
+        })
+      );
       const lock = new RWMutex(mockCollection, lockID, clientID, {
         sleepTime: 1,
       });
       await lock.rLock();
 
-      expect(mockCollection.find).toHaveBeenCalledTimes(1);
-      expect(mockCollection.find).toHaveBeenCalledWith({ lockID });
-      expect(mockCollection.insert).toHaveBeenCalledTimes(0);
+      expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
+      expect(mockCollection.insertOne).toHaveBeenCalledTimes(0);
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(0);
     });
   });
