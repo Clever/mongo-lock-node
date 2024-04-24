@@ -19,7 +19,8 @@
     "testRegex": "/__tests__/.+\\.ts$",
     "transform": {
       "^.+\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
-    }
+    },
+    "modulePathIgnorePatterns": ["<rootDir>/dist/"]
   },
   "author": "",
   "license": "Apache-2.0",
