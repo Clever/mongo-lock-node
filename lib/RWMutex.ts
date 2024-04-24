@@ -1,5 +1,4 @@
 import {
-  Collection as MongoCollection,
   WithId,
   MongoError,
   InsertOneResult,
