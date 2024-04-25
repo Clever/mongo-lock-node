@@ -46,7 +46,7 @@ export default class RWMutex {
     coll: MongoLockCollection,
     lockID: string,
     clientID: string,
-    options = { sleepTime: 5000 },
+    options = { sleepTime: 1000 },
   ) {
     this._coll = coll;
     this._lockID = lockID;
@@ -203,44 +203,34 @@ export default class RWMutex {
    * @return {Promise} - resolves with the lock object, rejects with the formatted error
    */
   async _findOrCreateLock(): Promise<WithId<MongoLock>> {
-    let foundLock: WithId<MongoLock>;
-    try {
-      foundLock = await this._coll.findOne({ lockID: this._lockID });
-    } catch (err) {
-      throw new Error(`error finding lock ${this._lockID}: ${err.message}`);
-    }
-    if (foundLock) {
-      return foundLock;
-    }
-
-    let lockToCreate: MongoLock = {
-      lockID: this._lockID,
-      readers: [],
-      writer: "",
-    };
-    let createdLock: WithId<MongoLock>;
-
-    // attempt to create the lock
-    try {
-      await this._coll.insertOne(lockToCreate);
-    } catch (err) {
-      if (!(err instanceof MongoError) || err.code !== 11000) {
-        throw new Error(`error creating lock ${this._lockID}: ${err.message}`);
+    let resultLock: WithId<MongoLock>;
+    while (!resultLock) {
+      try {
+        resultLock = await this._coll.findOne({ lockID: this._lockID });
+      } catch (err) {
+        throw new Error(`error finding lock ${this._lockID}: ${err.message}`);
       }
-      createdLock = null;
-    }
-    // whether we successfully created the lock or got a duplicate key error
-    // we need to find the lock
-    try {
-      createdLock = await this._coll.findOne({ lockID: this._lockID });
-    } catch (err) {
-      throw new Error(`error finding lock ${this._lockID}: ${err.message}`);
+      if (resultLock) {
+        continue;
+      }
+
+      const lockToCreate: MongoLock = {
+        lockID: this._lockID,
+        readers: [],
+        writer: "",
+      };
+
+      // attempt to create the lock
+      try {
+        await this._coll.insertOne(lockToCreate);
+      } catch (err) {
+        if (!(err instanceof MongoError) || err.code !== 11000) {
+          throw new Error(`error creating lock ${this._lockID}: ${err.message}`);
+        }
+      }
+      await timeoutPromise(this._options.sleepTime);
     }
 
-    if (!createdLock) {
-      // this should never happen
-      throw new Error(`error finding and creating lock ${this._lockID}`);
-    }
-    return createdLock;
+    return resultLock;
   }
 }
