@@ -1,4 +1,11 @@
-import { WithId, MongoError, InsertOneResult, UpdateResult, DeleteResult } from "mongodb";
+import {
+  WithId,
+  MongoError,
+  InsertOneResult,
+  UpdateResult,
+  DeleteResult,
+  UpdateOptions,
+} from "mongodb";
 
 // Helper function that converts setTimeout to a Promise
 function timeoutPromise(delay) {
@@ -17,7 +24,7 @@ export interface MongoLockCollection {
   findOne: (filter: any) => Promise<WithId<MongoLock>>;
   deleteOne: (filter: any) => Promise<DeleteResult>;
   insertOne: (doc: MongoLock) => Promise<InsertOneResult<MongoLock>>;
-  updateOne: (filter: any, update: any) => Promise<UpdateResult<MongoLock>>;
+  updateOne: (filter: any, update: any, opts?: UpdateOptions) => Promise<UpdateResult<MongoLock>>;
 }
 
 /*
@@ -66,32 +73,40 @@ export default class RWMutex {
     let acquired = false;
     while (!acquired) {
       try {
-        // provides readable error messages, no need to catch and rethrow
-        const lock = await this._findOrCreateLock();
-
-        // if this clientID already has the lock, we re-enter the lock and return
-        if (lock.writer === this._clientID) {
-          return;
-        }
-
+        // If no such lock exists, this will create it
+        // If a lock exists with this lockID with no readers and no writer, this will update it
+        // If a lock exists with this lockID with clientID as the writer and no readers,
+        // this will do nothing
+        // If a lock exists with this lockID with a different clientID as the writer or readers,
+        // this will throw an error which will be caught.  We will then retry.
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
             readers: [],
-            writer: "",
+            $or: [
+              {
+                writer: "",
+              },
+              {
+                writer: this._clientID,
+              },
+            ],
           },
           {
             $set: {
               writer: this._clientID,
             },
           },
+          { upsert: true },
         );
-        if (result.matchedCount > 0) {
+        if (result.matchedCount > 0 || result.upsertedCount > 0) {
           acquired = true;
           return;
         }
       } catch (err) {
-        throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        if (!(err instanceof MongoError) || err.code !== 11000) {
+          throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        }
       }
 
       await timeoutPromise(this._options.sleepTime);
@@ -148,12 +163,11 @@ export default class RWMutex {
     while (!acquired) {
       // Acquire the lock
       try {
-        const lock = await this._findOrCreateLock();
-        if (lock.readers.indexOf(this._clientID) > -1) {
-          // if this clientID is already a reader, we can re-enter the lock here
-          return;
-        }
-
+        // If no such lock exists, this will create it
+        // If a lock exists with this lockID with no writer, this will update it to add the clientID
+        // to the readers list
+        // If a lock exists with this lockID with a writer, this will throw an error which will be
+        // caught.  We will then retry.
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
@@ -164,17 +178,16 @@ export default class RWMutex {
               readers: this._clientID,
             },
           },
+          { upsert: true },
         );
-        // We check matchedCount rather than modifiedCount here to make the lock re-enterable.
-        // If the lock should not be re-enterable, or clientIDs are not unique, this
-        // implemenation will break.
-        // TODO: option to make it not re-enterable
-        if (result.matchedCount > 0) {
+        if (result.matchedCount > 0 || result.upsertedCount > 0) {
           acquired = true;
           return;
         }
       } catch (err) {
-        throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        if (!(err instanceof MongoError) || err.code !== 11000) {
+          throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+        }
       }
 
       await timeoutPromise(this._options.sleepTime);
@@ -217,42 +230,5 @@ export default class RWMutex {
       throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
     }
     return;
-  }
-
-  /*
-   * Finds or creates the resource in the mongo collection with the specified lockID
-   * @param {string} - unique id of the resource
-   * @return {Promise} - resolves with the lock object, rejects with the formatted error
-   */
-  async _findOrCreateLock(): Promise<WithId<MongoLock>> {
-    let resultLock: WithId<MongoLock>;
-    while (!resultLock) {
-      try {
-        resultLock = await this._coll.findOne({ lockID: this._lockID });
-      } catch (err) {
-        throw new Error(`error finding lock ${this._lockID}: ${err.message}`);
-      }
-      if (resultLock) {
-        continue;
-      }
-
-      const lockToCreate: MongoLock = {
-        lockID: this._lockID,
-        readers: [],
-        writer: "",
-      };
-
-      // attempt to create the lock
-      try {
-        await this._coll.insertOne(lockToCreate);
-      } catch (err) {
-        if (!(err instanceof MongoError) || err.code !== 11000) {
-          throw new Error(`error creating lock ${this._lockID}: ${err.message}`);
-        }
-      }
-      await timeoutPromise(this._options.sleepTime);
-    }
-
-    return resultLock;
   }
 }

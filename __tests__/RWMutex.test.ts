@@ -64,7 +64,12 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       mockCollection.findOne = jest
         .fn()
-        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "different" }));
+        // first check returns a lock held by a different writer
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "different" }))
+        // second check returns null because the lock was released by the writer and deleted
+        .mockReturnValueOnce(Promise.resolve(null))
+        // third check returns a lock that we created because there was no lock previously
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "" }));
       mockCollection.updateOne = jest
         .fn()
         .mockReturnValueOnce(Promise.resolve({ matchedCount: 0 }))
@@ -74,7 +79,7 @@ describe("RWMutex", () => {
       });
       await lock.lock();
 
-      expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.findOne).toHaveBeenCalledTimes(3);
       expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID });
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
@@ -130,6 +135,7 @@ describe("RWMutex", () => {
 
     it("returns an error if the client did not hold the lock", async () => {
       const mockCollection = new MockCollection();
+      mockCollection.deleteOne = jest.fn().mockReturnValue(Promise.resolve({ deletedCount: 0 }));
       mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0 }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
 
@@ -263,6 +269,25 @@ describe("RWMutex", () => {
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.rUnlock();
 
+      expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.deleteOne).toHaveBeenCalledWith({
+        lockID,
+        writer: "",
+        readers: { $size: 1, $all: [clientID] },
+      });
+    });
+
+    it("releases the lock with more than one reader", async () => {
+      const mockCollection = new MockCollection();
+      const lock = new RWMutex(mockCollection, lockID, clientID);
+      mockCollection.deleteOne = jest.fn().mockReturnValue(Promise.resolve({ deletedCount: 0 }));
+      await lock.rUnlock();
+      expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
+      expect(mockCollection.deleteOne).toHaveBeenCalledWith({
+        lockID,
+        writer: "",
+        readers: { $size: 1, $all: [clientID] },
+      });
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
@@ -279,6 +304,7 @@ describe("RWMutex", () => {
 
     it("returns an error if the client did not hold the lock", async () => {
       const mockCollection = new MockCollection();
+      mockCollection.deleteOne = jest.fn().mockReturnValue(Promise.resolve({ deletedCount: 0 }));
       mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0 }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
 
