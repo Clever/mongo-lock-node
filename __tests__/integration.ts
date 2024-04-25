@@ -67,6 +67,30 @@ describe("Integration Test: RWMutex", () => {
       });
     });
 
+    it("locks the lock if the client already has it", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.lock();
+
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+
+      await lock.lock();
+      lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      return expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+    });
+
     it(".unlock() throws an error if lock is not held", async () => {
       const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
       try {
@@ -167,6 +191,30 @@ describe("Integration Test: RWMutex", () => {
       await lock.rLock();
 
       const lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      return expect(lockObject).toMatchObject({
+        lockID,
+        readers: ["1"],
+        writer: "",
+      });
+    });
+
+    it("acquires the lock if the client already has it", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.rLock();
+
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: ["1"],
+        writer: "",
+      });
+
+      await lock.rLock();
+      lockObject = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
       delete lockObject._id;
       return expect(lockObject).toMatchObject({
