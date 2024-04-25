@@ -1,6 +1,6 @@
 {
   "name": "mongo-lock-node",
-  "version": "0.1.2",
+  "version": "1.0.0",
   "description": "a distributed lock client backed by mongo",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",

@@ -1,11 +1,4 @@
-import {
-  WithId,
-  MongoError,
-  InsertOneResult,
-  UpdateResult,
-  DeleteResult,
-  UpdateOptions,
-} from "mongodb";
+import { MongoError, UpdateResult, DeleteResult, UpdateOptions } from "mongodb";
 
 // Helper function that converts setTimeout to a Promise
 function timeoutPromise(delay) {
@@ -21,9 +14,7 @@ export interface MongoLock {
 }
 
 export interface MongoLockCollection {
-  findOne: (filter: any) => Promise<WithId<MongoLock>>;
   deleteOne: (filter: any) => Promise<DeleteResult>;
-  insertOne: (doc: MongoLock) => Promise<InsertOneResult<MongoLock>>;
   updateOne: (filter: any, update: any, opts?: UpdateOptions) => Promise<UpdateResult<MongoLock>>;
 }
 
