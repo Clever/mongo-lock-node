@@ -72,9 +72,7 @@ describe("Integration Test: RWMutex", () => {
       try {
         await lock.unlock();
       } catch (err) {
-        return expect(err.message).toEqual(
-          "lock lockID not currently held by client: 1"
-        );
+        return expect(err.message).toEqual("lock lockID not currently held by client: 1");
       }
       throw new Error("expected error to be thrown");
     });
@@ -135,7 +133,6 @@ describe("Integration Test: RWMutex", () => {
         writer: "2",
       });
     });
-
 
     it("waits for the lock to be released if a reader has it", async () => {
       const lock = new RWMutex(collection, lockID, clientID);
@@ -236,7 +233,6 @@ describe("Integration Test: RWMutex", () => {
         writer: "",
       });
 
-
       await lock.rUnlock();
 
       lockObject = await collection.findOne({ lockID });
@@ -254,13 +250,10 @@ describe("Integration Test: RWMutex", () => {
       try {
         await lock.rUnlock();
       } catch (err) {
-        return expect(err.message).toEqual(
-          "lock lockID not currently held by client: 1"
-        );
+        return expect(err.message).toEqual("lock lockID not currently held by client: 1");
       }
       throw new Error("expected error to be thrown");
     });
-
 
     it("waits for the lock to be released if a writer has it", async () => {
       const lock = new RWMutex(collection, lockID, clientID);

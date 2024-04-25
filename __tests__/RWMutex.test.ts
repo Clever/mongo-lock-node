@@ -12,9 +12,7 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       mockCollection.findOne = jest
         .fn()
-        .mockReturnValueOnce(
-          Promise.resolve({ lockID, readers: [], writer: "" })
-        );
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "" }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.lock();
 
@@ -29,7 +27,7 @@ describe("RWMutex", () => {
           $set: {
             writer: "1",
           },
-        }
+        },
       );
     });
 
@@ -38,9 +36,7 @@ describe("RWMutex", () => {
       mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(Promise.resolve(null))
-        .mockReturnValueOnce(
-          Promise.resolve({ lockID, readers: [], writer: "" })
-        );
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "" }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.lock();
 
@@ -60,7 +56,7 @@ describe("RWMutex", () => {
           $set: {
             writer: "1",
           },
-        }
+        },
       );
     });
 
@@ -68,9 +64,7 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       mockCollection.findOne = jest
         .fn()
-        .mockReturnValueOnce(
-          Promise.resolve({ lockID, readers: [], writer: "different" })
-        );
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "different" }));
       mockCollection.updateOne = jest
         .fn()
         .mockReturnValueOnce(Promise.resolve({ matchedCount: 0 }))
@@ -93,7 +87,7 @@ describe("RWMutex", () => {
           $set: {
             writer: "1",
           },
-        }
+        },
       );
     });
 
@@ -101,9 +95,7 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       mockCollection.findOne = jest
         .fn()
-        .mockReturnValueOnce(
-          Promise.resolve({ lockID, readers: [], writer: clientID })
-        );
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: clientID }));
       const lock = new RWMutex(mockCollection, lockID, clientID, {
         sleepTime: 1,
       });
@@ -132,15 +124,13 @@ describe("RWMutex", () => {
           $set: {
             writer: "",
           },
-        }
+        },
       );
     });
 
     it("returns an error if the client did not hold the lock", async () => {
       const mockCollection = new MockCollection();
-      mockCollection.updateOne = jest
-        .fn()
-        .mockReturnValue(Promise.resolve({ matchedCount: 0 }));
+      mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0 }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
 
       try {
@@ -157,7 +147,7 @@ describe("RWMutex", () => {
             $set: {
               writer: "",
             },
-          }
+          },
         );
         return;
       }
@@ -170,9 +160,7 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       mockCollection.findOne = jest
         .fn()
-        .mockReturnValueOnce(
-          Promise.resolve({ lockID, readers: [], writer: "" })
-        );
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "" }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.rLock();
 
@@ -186,7 +174,7 @@ describe("RWMutex", () => {
           $addToSet: {
             readers: clientID,
           },
-        }
+        },
       );
     });
 
@@ -195,9 +183,7 @@ describe("RWMutex", () => {
       mockCollection.findOne = jest
         .fn()
         .mockReturnValueOnce(Promise.resolve(null))
-        .mockReturnValueOnce(
-          Promise.resolve({ lockID, readers: [], writer: "" })
-        );
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "" }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.rLock();
 
@@ -216,7 +202,7 @@ describe("RWMutex", () => {
           $addToSet: {
             readers: clientID,
           },
-        }
+        },
       );
     });
 
@@ -224,9 +210,7 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       mockCollection.findOne = jest
         .fn()
-        .mockReturnValueOnce(
-          Promise.resolve({ lockID, readers: [], writer: "different" })
-        );
+        .mockReturnValueOnce(Promise.resolve({ lockID, readers: [], writer: "different" }));
       mockCollection.updateOne = jest
         .fn()
         .mockReturnValueOnce(Promise.resolve({ matchedCount: 0 }))
@@ -248,7 +232,7 @@ describe("RWMutex", () => {
           $addToSet: {
             readers: clientID,
           },
-        }
+        },
       );
     });
 
@@ -259,7 +243,7 @@ describe("RWMutex", () => {
           lockID,
           readers: ["different", clientID],
           writer: "",
-        })
+        }),
       );
       const lock = new RWMutex(mockCollection, lockID, clientID, {
         sleepTime: 1,
@@ -289,15 +273,13 @@ describe("RWMutex", () => {
           $pull: {
             readers: clientID,
           },
-        }
+        },
       );
     });
 
     it("returns an error if the client did not hold the lock", async () => {
       const mockCollection = new MockCollection();
-      mockCollection.updateOne = jest
-        .fn()
-        .mockReturnValue(Promise.resolve({ matchedCount: 0 }));
+      mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0 }));
       const lock = new RWMutex(mockCollection, lockID, clientID);
 
       try {
@@ -314,7 +296,7 @@ describe("RWMutex", () => {
             $pull: {
               readers: clientID,
             },
-          }
+          },
         );
         return;
       }

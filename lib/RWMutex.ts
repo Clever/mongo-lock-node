@@ -1,9 +1,4 @@
-import {
-  WithId,
-  MongoError,
-  InsertOneResult,
-  UpdateResult,
-} from "mongodb";
+import { WithId, MongoError, InsertOneResult, UpdateResult } from "mongodb";
 
 // Helper function that converts setTimeout to a Promise
 function timeoutPromise(delay) {
@@ -51,7 +46,7 @@ export default class RWMutex {
     coll: MongoLockCollection,
     lockID: string,
     clientID: string,
-    options = { sleepTime: 5000 }
+    options = { sleepTime: 5000 },
   ) {
     this._coll = coll;
     this._lockID = lockID;
@@ -88,7 +83,7 @@ export default class RWMutex {
             $set: {
               writer: this._clientID,
             },
-          }
+          },
         );
         if (result.matchedCount > 0) {
           acquired = true;
@@ -118,15 +113,13 @@ export default class RWMutex {
           $set: {
             writer: "",
           },
-        }
+        },
       );
     } catch (err) {
       throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
     }
     if (result.matchedCount === 0) {
-      throw new Error(
-        `lock ${this._lockID} not currently held by client: ${this._clientID}`
-      );
+      throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
     }
     return;
   }
@@ -159,7 +152,7 @@ export default class RWMutex {
             $addToSet: {
               readers: this._clientID,
             },
-          }
+          },
         );
         // We check matchedCount rather than modifiedCount here to make the lock re-enterable.
         // If the lock should not be re-enterable, or clientIDs are not unique, this
@@ -193,15 +186,13 @@ export default class RWMutex {
           $pull: {
             readers: this._clientID,
           },
-        }
+        },
       );
     } catch (err) {
       throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
     }
     if (result.matchedCount === 0) {
-      throw new Error(
-        `lock ${this._lockID} not currently held by client: ${this._clientID}`
-      );
+      throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
     }
     return;
   }
