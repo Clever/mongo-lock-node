@@ -1,4 +1,4 @@
-import { WithId, MongoError, InsertOneResult, UpdateResult } from "mongodb";
+import { WithId, MongoError, InsertOneResult, UpdateResult, DeleteResult } from "mongodb";
 
 // Helper function that converts setTimeout to a Promise
 function timeoutPromise(delay) {
@@ -15,6 +15,7 @@ export interface MongoLock {
 
 export interface MongoLockCollection {
   findOne: (filter: any) => Promise<WithId<MongoLock>>;
+  deleteOne: (filter: any) => Promise<DeleteResult>;
   insertOne: (doc: MongoLock) => Promise<InsertOneResult<MongoLock>>;
   updateOne: (filter: any, update: any) => Promise<UpdateResult<MongoLock>>;
 }
@@ -59,20 +60,20 @@ export default class RWMutex {
    * @return {Promise} - Promise that resolves when the lock is acquired, rejects if an error occurs
    */
   async lock() {
-    // provides readable error messages, no need to catch and rethrow
-    const lock = await this._findOrCreateLock();
-
-    // if this clientID already has the lock, we re-enter the lock and return
-    if (lock.writer === this._clientID) {
-      return;
-    }
-
     // Loop and do the following:
     // 1. attempt to acquire the lock (must have no readers and no writer)
     // 2. if not acquired, sleep and retry
     let acquired = false;
     while (!acquired) {
       try {
+        // provides readable error messages, no need to catch and rethrow
+        const lock = await this._findOrCreateLock();
+
+        // if this clientID already has the lock, we re-enter the lock and return
+        if (lock.writer === this._clientID) {
+          return;
+        }
+
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
@@ -104,6 +105,17 @@ export default class RWMutex {
   async unlock() {
     let result;
     try {
+      // delete lock if this is the only holder
+      const deleteResult = await this._coll.deleteOne({
+        lockID: this._lockID,
+        writer: this._clientID,
+        readers: [],
+      });
+      if (deleteResult.deletedCount > 0) {
+        return;
+      }
+
+      // otherwise, remove the clientID from the writer field
       result = await this._coll.updateOne(
         {
           lockID: this._lockID,
@@ -129,13 +141,6 @@ export default class RWMutex {
    * @return {Promise} - Resolves when the lock is acquired, rejects if an error occurs
    */
   async rLock() {
-    // provides readable error messages, no need to catch and rethrow
-    const lock = await this._findOrCreateLock();
-    if (lock.readers.indexOf(this._clientID) > -1) {
-      // if this clientID is already a reader, we can re-enter the lock here
-      return;
-    }
-
     // Loop and do the following:
     // 1. attempt to acquire the lock (must have no writer)
     // 2. if not acquired, sleep and retry
@@ -143,6 +148,12 @@ export default class RWMutex {
     while (!acquired) {
       // Acquire the lock
       try {
+        const lock = await this._findOrCreateLock();
+        if (lock.readers.indexOf(this._clientID) > -1) {
+          // if this clientID is already a reader, we can re-enter the lock here
+          return;
+        }
+
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
@@ -177,6 +188,17 @@ export default class RWMutex {
   async rUnlock() {
     let result;
     try {
+      // delete lock if this is the only holder
+      const deleteResult = await this._coll.deleteOne({
+        lockID: this._lockID,
+        writer: "",
+        readers: { $size: 1, $all: [this._clientID] },
+      });
+      if (deleteResult.deletedCount > 0) {
+        return;
+      }
+
+      // otherwise, remove the clientID from the readers list
       result = await this._coll.updateOne(
         {
           lockID: this._lockID,
