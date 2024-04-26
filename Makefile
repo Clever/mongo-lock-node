@@ -49,7 +49,8 @@ lint: format-check lint-es
 
 build:
 	@echo "Building..."
-	@npm run --silent build
+	@rm -rf ./dist/
+	@$(TSC) --declaration
 
 install_deps:
 	npm install

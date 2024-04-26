@@ -8,7 +8,8 @@
     "baseUrl": ".",
     "paths": {
       "src/*": ["./lib/*", "./__mocks__/*", "./__tests__/*"]
-    }
+    },
+    "outDir": "dist"
   },
   "exclude": ["jest", "node_modules"]
 }

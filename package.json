@@ -1,8 +1,9 @@
 {
   "name": "mongo-lock-node",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "a distributed lock client backed by mongo",
   "main": "dist/index.js",
+  "types": "dist/index.d.ts",
   "scripts": {
     "build": "tsc",
     "test": "jest --no-cache"
@@ -18,7 +19,8 @@
     "testRegex": "/__tests__/.+\\.ts$",
     "transform": {
       "^.+\\.ts$": "<rootDir>/node_modules/ts-jest/preprocessor.js"
-    }
+    },
+    "modulePathIgnorePatterns": ["<rootDir>/dist/"]
   },
   "author": "",
   "license": "Apache-2.0",
