@@ -18,6 +18,17 @@ export interface MongoLockCollection {
   updateOne: (filter: any, update: any, opts?: UpdateOptions) => Promise<UpdateResult<MongoLock>>;
 }
 
+export const emptyReadersQuery = {
+  $or: [
+    {
+      readers: { $size: 0 },
+    },
+    {
+      readers: { $exists: false },
+    },
+  ],
+};
+
 /*
  * RWMutex implements a distributed reader/writer lock backed by mongodb. Right now it is limited
  * in a few key ways:
@@ -73,19 +84,24 @@ export default class RWMutex {
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
-            readers: [],
-            $or: [
+            $and: [
+              emptyReadersQuery,
               {
-                writer: "",
-              },
-              {
-                writer: this._clientID,
+                $or: [
+                  {
+                    writer: "",
+                  },
+                  {
+                    writer: this._clientID,
+                  },
+                ],
               },
             ],
           },
           {
             $set: {
               writer: this._clientID,
+              readers: [],
             },
           },
           { upsert: true },

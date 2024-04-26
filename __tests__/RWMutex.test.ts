@@ -1,4 +1,4 @@
-import RWMutex from "../lib/RWMutex";
+import RWMutex, { emptyReadersQuery } from "../lib/RWMutex";
 import MockCollection from "../__mocks__/MockCollection";
 import { MongoError } from "mongodb";
 
@@ -16,20 +16,25 @@ describe("RWMutex", () => {
 
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
-          lockID,
-          readers: [],
-          $or: [
+          lockID: lockID,
+          $and: [
+            emptyReadersQuery,
             {
-              writer: "",
-            },
-            {
-              writer: clientID,
+              $or: [
+                {
+                  writer: "",
+                },
+                {
+                  writer: clientID,
+                },
+              ],
             },
           ],
         },
         {
           $set: {
             writer: clientID,
+            readers: [],
           },
         },
         { upsert: true },
@@ -48,20 +53,25 @@ describe("RWMutex", () => {
 
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
-          lockID,
-          readers: [],
-          $or: [
+          lockID: lockID,
+          $and: [
+            emptyReadersQuery,
             {
-              writer: "",
-            },
-            {
-              writer: clientID,
+              $or: [
+                {
+                  writer: "",
+                },
+                {
+                  writer: clientID,
+                },
+              ],
             },
           ],
         },
         {
           $set: {
             writer: clientID,
+            readers: [],
           },
         },
         { upsert: true },
@@ -83,20 +93,25 @@ describe("RWMutex", () => {
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
-          lockID,
-          readers: [],
-          $or: [
+          lockID: lockID,
+          $and: [
+            emptyReadersQuery,
             {
-              writer: "",
-            },
-            {
-              writer: clientID,
+              $or: [
+                {
+                  writer: "",
+                },
+                {
+                  writer: clientID,
+                },
+              ],
             },
           ],
         },
         {
           $set: {
             writer: clientID,
+            readers: [],
           },
         },
         { upsert: true },
@@ -116,20 +131,25 @@ describe("RWMutex", () => {
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
-          lockID,
-          readers: [],
-          $or: [
+          lockID: lockID,
+          $and: [
+            emptyReadersQuery,
             {
-              writer: "",
-            },
-            {
-              writer: clientID,
+              $or: [
+                {
+                  writer: "",
+                },
+                {
+                  writer: clientID,
+                },
+              ],
             },
           ],
         },
         {
           $set: {
             writer: clientID,
+            readers: [],
           },
         },
         { upsert: true },
