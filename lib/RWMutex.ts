@@ -26,6 +26,23 @@ export const emptyReadersQuery = {
     {
       readers: { $exists: false },
     },
+    {
+      readers: null,
+    },
+  ],
+};
+
+export const emptyWriterQuery = {
+  $or: [
+    {
+      writer: { $exists: false },
+    },
+    {
+      writer: "",
+    },
+    {
+      writer: null,
+    },
   ],
 };
 
@@ -88,6 +105,9 @@ export default class RWMutex {
               emptyReadersQuery,
               {
                 $or: [
+                  {
+                    writer: { $exists: false },
+                  },
                   {
                     writer: "",
                   },

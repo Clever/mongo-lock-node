@@ -22,6 +22,9 @@ describe("RWMutex", () => {
             {
               $or: [
                 {
+                  writer: { $exists: false },
+                },
+                {
                   writer: "",
                 },
                 {
@@ -58,6 +61,9 @@ describe("RWMutex", () => {
             emptyReadersQuery,
             {
               $or: [
+                {
+                  writer: { $exists: false },
+                },
                 {
                   writer: "",
                 },
@@ -99,6 +105,9 @@ describe("RWMutex", () => {
             {
               $or: [
                 {
+                  writer: { $exists: false },
+                },
+                {
                   writer: "",
                 },
                 {
@@ -136,6 +145,9 @@ describe("RWMutex", () => {
             emptyReadersQuery,
             {
               $or: [
+                {
+                  writer: { $exists: false },
+                },
                 {
                   writer: "",
                 },
