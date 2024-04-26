@@ -173,9 +173,12 @@ describe("RWMutex", () => {
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID,
-          writer: "",
+          $or: emptyWriterQuery["$or"],
         },
         {
+          $set: {
+            writer: "",
+          },
           $addToSet: {
             readers: clientID,
           },
@@ -192,9 +195,12 @@ describe("RWMutex", () => {
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID,
-          writer: "",
+          $or: emptyWriterQuery["$or"],
         },
         {
+          $set: {
+            writer: "",
+          },
           $addToSet: {
             readers: clientID,
           },
@@ -219,9 +225,12 @@ describe("RWMutex", () => {
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID,
-          writer: "",
+          $or: emptyWriterQuery["$or"],
         },
         {
+          $set: {
+            writer: "",
+          },
           $addToSet: {
             readers: clientID,
           },
@@ -244,9 +253,12 @@ describe("RWMutex", () => {
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID,
-          writer: "",
+          $or: emptyWriterQuery["$or"],
         },
         {
+          $set: {
+            writer: "",
+          },
           $addToSet: {
             readers: clientID,
           },

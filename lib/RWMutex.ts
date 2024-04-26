@@ -185,9 +185,12 @@ export default class RWMutex {
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
-            writer: "",
+            $or: emptyWriterQuery["$or"],
           },
           {
+            $set: {
+              writer: "",
+            },
             $addToSet: {
               readers: this._clientID,
             },
