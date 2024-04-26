@@ -1,4 +1,4 @@
-import RWMutex, { emptyReadersQuery } from "../lib/RWMutex";
+import RWMutex, { emptyReadersQuery, emptyWriterQuery } from "../lib/RWMutex";
 import MockCollection from "../__mocks__/MockCollection";
 import { MongoError } from "mongodb";
 
@@ -13,26 +13,12 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       const lock = new RWMutex(mockCollection, lockID, clientID);
       await lock.lock();
-
+      const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+      writerQuery["$or"].push({ writer: clientID });
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID: lockID,
-          $and: [
-            emptyReadersQuery,
-            {
-              $or: [
-                {
-                  writer: { $exists: false },
-                },
-                {
-                  writer: "",
-                },
-                {
-                  writer: clientID,
-                },
-              ],
-            },
-          ],
+          $and: [emptyReadersQuery, writerQuery],
         },
         {
           $set: {
@@ -53,26 +39,12 @@ describe("RWMutex", () => {
         }),
       );
       await lock.lock();
-
+      const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+      writerQuery["$or"].push({ writer: clientID });
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID: lockID,
-          $and: [
-            emptyReadersQuery,
-            {
-              $or: [
-                {
-                  writer: { $exists: false },
-                },
-                {
-                  writer: "",
-                },
-                {
-                  writer: clientID,
-                },
-              ],
-            },
-          ],
+          $and: [emptyReadersQuery, writerQuery],
         },
         {
           $set: {
@@ -96,26 +68,13 @@ describe("RWMutex", () => {
         sleepTime: 1,
       });
       await lock.lock();
+      const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+      writerQuery["$or"].push({ writer: clientID });
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID: lockID,
-          $and: [
-            emptyReadersQuery,
-            {
-              $or: [
-                {
-                  writer: { $exists: false },
-                },
-                {
-                  writer: "",
-                },
-                {
-                  writer: clientID,
-                },
-              ],
-            },
-          ],
+          $and: [emptyReadersQuery, writerQuery],
         },
         {
           $set: {
@@ -136,27 +95,13 @@ describe("RWMutex", () => {
         .fn()
         .mockReturnValueOnce(Promise.resolve({ matchedCount: 1 }));
       await lock.lock();
-
+      const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+      writerQuery["$or"].push({ writer: clientID });
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
       expect(mockCollection.updateOne).toHaveBeenCalledWith(
         {
           lockID: lockID,
-          $and: [
-            emptyReadersQuery,
-            {
-              $or: [
-                {
-                  writer: { $exists: false },
-                },
-                {
-                  writer: "",
-                },
-                {
-                  writer: clientID,
-                },
-              ],
-            },
-          ],
+          $and: [emptyReadersQuery, writerQuery],
         },
         {
           $set: {

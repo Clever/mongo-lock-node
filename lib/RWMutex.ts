@@ -98,25 +98,12 @@ export default class RWMutex {
         // this will do nothing
         // If a lock exists with this lockID with a different clientID as the writer or readers,
         // this will throw an error which will be caught.  We will then retry.
+        const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+        writerQuery["$or"].push({ writer: this._clientID });
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
-            $and: [
-              emptyReadersQuery,
-              {
-                $or: [
-                  {
-                    writer: { $exists: false },
-                  },
-                  {
-                    writer: "",
-                  },
-                  {
-                    writer: this._clientID,
-                  },
-                ],
-              },
-            ],
+            $and: [emptyReadersQuery, writerQuery],
           },
           {
             $set: {
