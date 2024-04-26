@@ -46,6 +46,8 @@ export const emptyWriterQuery = {
   ],
 };
 
+export const DuplicateKeyErrorCode = 11000;
+
 /*
  * RWMutex implements a distributed reader/writer lock backed by mongodb. Right now it is limited
  * in a few key ways:
@@ -118,7 +120,7 @@ export default class RWMutex {
           return;
         }
       } catch (err) {
-        if (!(err instanceof MongoError) || err.code !== 11000) {
+        if (!(err instanceof MongoError) || err.code !== DuplicateKeyErrorCode) {
           throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
         }
       }
@@ -202,7 +204,7 @@ export default class RWMutex {
           return;
         }
       } catch (err) {
-        if (!(err instanceof MongoError) || err.code !== 11000) {
+        if (!(err instanceof MongoError) || err.code !== DuplicateKeyErrorCode) {
           throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
         }
       }
