@@ -277,7 +277,7 @@ describe("RWMutex", () => {
       expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
       expect(mockCollection.deleteOne).toHaveBeenCalledWith({
         lockID,
-        writer: "",
+        $or: emptyWriterQuery["$or"],
         readers: { $size: 1, $all: [clientID] },
       });
     });
@@ -291,7 +291,7 @@ describe("RWMutex", () => {
       expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
       expect(mockCollection.deleteOne).toHaveBeenCalledWith({
         lockID,
-        writer: "",
+        $or: emptyWriterQuery["$or"],
         readers: { $size: 1, $all: [clientID] },
       });
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
@@ -321,7 +321,7 @@ describe("RWMutex", () => {
         expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
         expect(mockCollection.deleteOne).toHaveBeenCalledWith({
           lockID,
-          writer: "",
+          $or: emptyWriterQuery["$or"],
           readers: { $size: 1, $all: [clientID] },
         });
         expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);

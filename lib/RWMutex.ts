@@ -221,7 +221,7 @@ export default class RWMutex {
       // delete lock if this is the only holder
       const deleteResult = await this._coll.deleteOne({
         lockID: this._lockID,
-        writer: "",
+        $or: emptyWriterQuery["$or"],
         readers: { $size: 1, $all: [this._clientID] },
       });
       if (deleteResult.deletedCount > 0) {
