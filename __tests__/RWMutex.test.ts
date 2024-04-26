@@ -124,7 +124,7 @@ describe("RWMutex", () => {
       expect(mockCollection.deleteOne).toHaveBeenCalledWith({
         lockID,
         writer: clientID,
-        readers: [],
+        $or: emptyReadersQuery["$or"],
       });
     });
 
@@ -144,7 +144,7 @@ describe("RWMutex", () => {
         expect(mockCollection.deleteOne).toHaveBeenCalledWith({
           lockID,
           writer: clientID,
-          readers: [],
+          $or: emptyReadersQuery["$or"],
         });
         expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
         expect(mockCollection.updateOne).toHaveBeenCalledWith(

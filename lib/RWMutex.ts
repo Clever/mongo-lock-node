@@ -138,7 +138,7 @@ export default class RWMutex {
       const deleteResult = await this._coll.deleteOne({
         lockID: this._lockID,
         writer: this._clientID,
-        readers: [],
+        $or: emptyReadersQuery["$or"],
       });
       if (deleteResult.deletedCount > 0) {
         return;
