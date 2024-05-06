@@ -121,7 +121,7 @@ export default class RWMutex {
         }
       } catch (err) {
         if (!(err instanceof MongoError) || err.code !== DuplicateKeyErrorCode) {
-          let errMsg = `error aquiring lock ${this._lockID}`;
+          let errMsg = `error acquiring lock ${this._lockID}`;
           if (err instanceof Error) {
             errMsg += `: ${err.message}`;
           }
@@ -213,7 +213,7 @@ export default class RWMutex {
         }
       } catch (err) {
         if (!(err instanceof MongoError) || err.code !== DuplicateKeyErrorCode) {
-          let errMsg = `error aquiring lock ${this._lockID}`;
+          let errMsg = `error acquiring lock ${this._lockID}`;
           if (err instanceof Error) {
             errMsg += `: ${err.message}`;
           }
