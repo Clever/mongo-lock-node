@@ -121,7 +121,11 @@ export default class RWMutex {
         }
       } catch (err) {
         if (!(err instanceof MongoError) || err.code !== DuplicateKeyErrorCode) {
-          throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+          let errMsg = `error acquiring lock ${this._lockID}`;
+          if (err instanceof Error) {
+            errMsg += `: ${err.message}`;
+          }
+          throw new Error(errMsg);
         }
       }
 
@@ -159,7 +163,11 @@ export default class RWMutex {
         },
       );
     } catch (err) {
-      throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
+      let errMsg = `error releasing lock ${this._lockID}`;
+      if (err instanceof Error) {
+        errMsg += `: ${err.message}`;
+      }
+      throw new Error(errMsg);
     }
     if (result.matchedCount === 0) {
       throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
@@ -205,7 +213,11 @@ export default class RWMutex {
         }
       } catch (err) {
         if (!(err instanceof MongoError) || err.code !== DuplicateKeyErrorCode) {
-          throw new Error(`error aquiring lock ${this._lockID}: ${err.message}`);
+          let errMsg = `error acquiring lock ${this._lockID}`;
+          if (err instanceof Error) {
+            errMsg += `: ${err.message}`;
+          }
+          throw new Error(errMsg);
         }
       }
 
@@ -243,7 +255,11 @@ export default class RWMutex {
         },
       );
     } catch (err) {
-      throw new Error(`error releasing lock ${this._lockID}: ${err.message}`);
+      let errMsg = `error releasing lock ${this._lockID}`;
+      if (err instanceof Error) {
+        errMsg += `: ${err.message}`;
+      }
+      throw new Error(errMsg);
     }
     if (result.matchedCount === 0) {
       throw new Error(`lock ${this._lockID} not currently held by client: ${this._clientID}`);
