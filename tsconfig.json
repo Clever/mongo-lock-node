@@ -9,7 +9,8 @@
     "paths": {
       "src/*": ["./lib/*", "./__mocks__/*", "./__tests__/*"]
     },
-    "outDir": "dist"
+    "outDir": "dist",
+    "useUnknownInCatchVariables": true,
   },
   "exclude": ["jest", "node_modules"]
 }

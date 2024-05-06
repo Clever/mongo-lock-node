@@ -139,7 +139,10 @@ describe("RWMutex", () => {
       try {
         await lock.unlock();
       } catch (err) {
-        expect(err.message).toBe("lock lockID not currently held by client: 1");
+        expect(err).toBeInstanceOf(Error);
+        if (err instanceof Error) { 
+          expect(err.message).toBe("lock lockID not currently held by client: 1");
+        }
         expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
         expect(mockCollection.deleteOne).toHaveBeenCalledWith({
           lockID,
@@ -317,7 +320,10 @@ describe("RWMutex", () => {
       try {
         await lock.rUnlock();
       } catch (err) {
-        expect(err.message).toBe("lock lockID not currently held by client: 1");
+        expect(err).toBeInstanceOf(Error);
+        if (err instanceof Error) {
+          expect(err.message).toBe("lock lockID not currently held by client: 1");
+        }
         expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
         expect(mockCollection.deleteOne).toHaveBeenCalledWith({
           lockID,
