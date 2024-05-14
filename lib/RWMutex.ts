@@ -14,6 +14,7 @@ export interface MongoLock {
 }
 
 export interface MongoLockCollection {
+  findOne: (filter: any) => Promise<MongoLock | null>;
   deleteOne: (filter: any) => Promise<DeleteResult>;
   updateOne: (filter: any, update: any, opts?: UpdateOptions) => Promise<UpdateResult<MongoLock>>;
 }
@@ -87,7 +88,7 @@ export default class RWMutex {
    * Acquires the write lock.
    * @return {Promise} - Promise that resolves when the lock is acquired, rejects if an error occurs
    */
-  async lock() {
+  async lock(): Promise<void> {
     // Loop and do the following:
     // 1. attempt to acquire the lock (must have no readers and no writer)
     // 2. if not acquired, sleep and retry
@@ -137,7 +138,7 @@ export default class RWMutex {
    * Unlocks the write lock. Must have the same lock type
    * @return {Promise} - Resolves when lock is released, rejects if an error occurs
    */
-  async unlock() {
+  async unlock(): Promise<void> {
     let result;
     try {
       // delete lock if this is the only holder
@@ -175,11 +176,79 @@ export default class RWMutex {
     return;
   }
 
+  /**
+   * overrideLockWriter is a method that will override the current writer of the lock with the
+   * clientID of the current instance of the RWMutex.
+   * @param upsert determines whether or not to create a new lock if one does not exist
+   * @returns void
+   */
+  async overrideLockWriter(upsert = false): Promise<void> {
+    let errMsg = `error overriding lock ${this._lockID}`;
+    try { 
+      const result = await this._coll.updateOne(
+        {
+          lockID: this._lockID,
+        },
+        {
+          $set: {
+            writer: this._clientID,
+          },
+          $setOnInsert: {
+            readers: [],
+          },
+        },
+        { upsert: upsert },
+      );
+      if (result.matchedCount > 0 || result.upsertedCount > 0) {
+        return;
+      }
+    } catch (err: unknown) {
+      
+      if (err instanceof Error) {
+        errMsg += `: ${err.message}`;
+      }
+      throw new Error(errMsg);
+    }
+    if (!upsert) {
+      errMsg += ": lock not found";
+      throw new Error(errMsg);
+    }
+    errMsg += ": lock not found, upsert failed";
+    throw new Error(errMsg);
+  }
+
+  /**
+   * conditionalOverrideLockWriter is a method that will override the current writer of the lock with the 
+   * clientID of the current instance of the RWMutex if the conditional function returns true.
+   * @param conditional returns a boolean value based on some comparison of the current lockID in the database and
+   * the lockID of the current instance of the RWMutex
+   * @param upsert determines whether or not to create a new lock if one does not exist
+   * @returns boolean value based on whether or not we overrode the lock
+   */
+  async conditionalOverrideLockWriter(
+    conditional: (oldWriter: string, newWriter: string) => Promise<boolean>,
+    upsert = false): Promise<boolean> { 
+    const mongoLock = await this._coll.findOne({ lockID: this._lockID })
+    if (!mongoLock) {
+      if (!upsert) {
+        return false;
+      }
+      await this.overrideLockWriter(upsert);
+      return true;
+    }
+    const conditionalResult = await conditional(mongoLock.writer, this._clientID);
+    if (conditionalResult) {
+      await this.overrideLockWriter(upsert);
+      return true;
+    }
+    return false;
+}
+
   /*
    * Acquires the read lock.
    * @return {Promise} - Resolves when the lock is acquired, rejects if an error occurs
    */
-  async rLock() {
+  async rLock(): Promise<void> {
     // Loop and do the following:
     // 1. attempt to acquire the lock (must have no writer)
     // 2. if not acquired, sleep and retry
@@ -229,7 +298,7 @@ export default class RWMutex {
    * Unlocks the read lock. Must have the same lock type
    * @return {Promise} - Resolves when lock is released, rejects if an error occurs
    */
-  async rUnlock() {
+  async rUnlock(): Promise<void> {
     let result;
     try {
       // delete lock if this is the only holder
