@@ -193,6 +193,9 @@ export default class RWMutex {
           $set: {
             writer: this._clientID,
           },
+          $setOnInsert: {
+            readers: [],
+          },
         },
         { upsert: upsert },
       );

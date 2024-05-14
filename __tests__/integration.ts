@@ -338,4 +338,162 @@ describe("Integration Test: RWMutex", () => {
       });
     });
   });
+
+  describe(".overrideLockWriter()", () => {
+    it("overrides the lock if a writer has it", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.lock();
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+
+      const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100 });
+      await lock2.overrideLockWriter();
+
+      lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "2",
+      });
+    });
+
+    it("upserts the lock if it doesn't exist", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.overrideLockWriter(true);
+
+      const lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      return expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+    });
+
+    it("overrides the lock if a reader has it", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.rLock();
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: ["1"],
+        writer: "",
+      });
+
+      const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100 });
+      await lock2.overrideLockWriter();
+
+      lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      return expect(lockObject).toMatchObject({
+        lockID,
+        readers: ["1"],
+        writer: "2",
+      });
+    });
+
+    it("throws an error if there is no lock to override and upsert is false", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      try {
+        await lock.overrideLockWriter(false);
+      } catch (err) {
+        expect(err).toBeInstanceOf(Error);
+        if (err instanceof Error) {
+          return expect(err.message).toEqual("error overriding lock lockID: lock not found");
+        }
+      }
+      throw new Error("expected error to be thrown");
+    });
+  });
+
+  describe(".conditonalOverrideLockWriter()", () => {
+    const conditional = async (oldWriter: string, newWriter: string): Promise<boolean> => {
+      return oldWriter < newWriter;
+    };
+
+    it("overrides the lock if the condition is met", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.lock();
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+
+      const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100 });
+      const success = await lock2.conditionalOverrideLockWriter(conditional);
+      expect(success).toBe(true);
+
+      lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      return expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "2",
+      });
+    });
+
+    it("does not override the lock if the condition is not met", async () => { 
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.lock();
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+
+      const lock2 = new RWMutex(collection, lockID, "0", { sleepTime: 100 });
+      const success = await lock2.conditionalOverrideLockWriter(conditional);
+      expect(success).toBe(false);
+
+      lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      return expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+    });
+
+    it("upserts the lock if it doesn't exist", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      const success = await lock.conditionalOverrideLockWriter(conditional, true);
+      expect(success).toBe(true);
+
+      const lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      return expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+    });
+
+    it("returns false if there is no lock to override and upsert is false", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      const success = await lock.conditionalOverrideLockWriter(conditional, false);
+      expect(success).toBe(false);
+    });
+  });
 });

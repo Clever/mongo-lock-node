@@ -363,6 +363,9 @@ describe(".overrideLockWriter()", () => {
         $set: {
           writer: clientID,
         },
+        $setOnInsert: {
+          readers: [],
+        },
       },
       { upsert: false },
     );
@@ -381,6 +384,9 @@ describe(".overrideLockWriter()", () => {
       {
         $set: {
           writer: clientID,
+        },
+        $setOnInsert: {
+          readers: [],
         },
       },
       { upsert: true },
@@ -403,6 +409,9 @@ describe(".overrideLockWriter()", () => {
         $set: {
           writer: clientID,
         },
+        $setOnInsert: {
+          readers: [],
+        },
       },
       { upsert: false },
     );
@@ -423,6 +432,9 @@ describe(".overrideLockWriter()", () => {
       {
         $set: {
           writer: clientID,
+        },
+        $setOnInsert: {
+          readers: [],
         },
       },
       { upsert: true },
@@ -448,6 +460,9 @@ describe(".conditionalOverrideLockWriter()", () => {
       {
         $set: {
           writer: clientID,
+        },
+        $setOnInsert: {
+          readers: [],
         },
       },
       { upsert: false },
@@ -489,6 +504,9 @@ describe(".conditionalOverrideLockWriter()", () => {
         $set: {
           writer: clientID,
         },
+        $setOnInsert: {
+          readers: [],
+        },
       },
       { upsert: true },
     );
@@ -527,6 +545,9 @@ describe(".conditionalOverrideLockWriter()", () => {
       {
         $set: {
           writer: clientID,
+        },
+        $setOnInsert: {
+          readers: [],
         },
       },
       { upsert: true },
