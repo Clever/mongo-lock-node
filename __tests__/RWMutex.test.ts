@@ -348,3 +348,189 @@ describe("RWMutex", () => {
     });
   });
 });
+describe(".overrideLockWriter()", () => {
+  it("overrides the current writer of the lock", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 1, upsertedCount: 0 }));
+    await lock.overrideLockWriter();
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+      },
+      {
+        $set: {
+          writer: clientID,
+        },
+      },
+      { upsert: false },
+    );
+  });
+
+  it("creates a new lock if one does not exist", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 1 }));
+    await lock.overrideLockWriter(true);
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+      },
+      {
+        $set: {
+          writer: clientID,
+        },
+      },
+      { upsert: true },
+    );
+  });
+
+  it("throws an error if the lock is not found and upsert is false", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0}));
+    await expect(lock.overrideLockWriter(false)).rejects.toThrow(
+      `error overriding lock ${lockID}: lock not found`,
+    );
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+      },
+      {
+        $set: {
+          writer: clientID,
+        },
+      },
+      { upsert: false },
+    );
+  });
+
+  it("throws an error if the lock is not found and upsert fails", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0}));
+    await expect(lock.overrideLockWriter(true)).rejects.toThrow(
+      `error overriding lock ${lockID}: lock not found, upsert failed`,
+    );
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+      },
+      {
+        $set: {
+          writer: clientID,
+        },
+      },
+      { upsert: true },
+    );
+  });
+});
+describe(".conditionalOverrideLockWriter()", () => {
+  it("overrides the current writer of the lock if the conditional function returns true", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.findOne = jest.fn().mockReturnValue(Promise.resolve({ writer: "oldWriter" }));
+    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 1 }));
+    const conditional = jest.fn().mockReturnValue(Promise.resolve(true));
+    const result = await lock.conditionalOverrideLockWriter(conditional);
+    expect(result).toBe(true);
+    expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+      },
+      {
+        $set: {
+          writer: clientID,
+        },
+      },
+      { upsert: false },
+    );
+    expect(conditional).toHaveBeenCalledTimes(1);
+    expect(conditional).toHaveBeenCalledWith("oldWriter", clientID);
+  });
+
+  it("does not override the current writer of the lock if the conditional function returns false", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.findOne = jest.fn().mockReturnValue(Promise.resolve({ writer: "oldWriter" }));
+    const conditional = jest.fn().mockReturnValue(Promise.resolve(false));
+    const result = await lock.conditionalOverrideLockWriter(conditional);
+    expect(result).toBe(false);
+    expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
+    expect(mockCollection.updateOne).not.toHaveBeenCalled();
+    expect(conditional).toHaveBeenCalledTimes(1);
+    expect(conditional).toHaveBeenCalledWith("oldWriter", clientID);
+  });
+
+  it("creates a new lock if one does not exist and upsert is true", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.findOne = jest.fn().mockReturnValue(Promise.resolve(null));
+    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ upsertedCount: 1 }));
+    const conditional = jest.fn().mockReturnValue(Promise.resolve(true));
+    const result = await lock.conditionalOverrideLockWriter(conditional, true);
+    expect(result).toBe(true);
+    expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+      },
+      {
+        $set: {
+          writer: clientID,
+        },
+      },
+      { upsert: true },
+    );
+    expect(conditional).not.toHaveBeenCalled();
+  });
+
+  it("does not create a new lock if one does not exist and upsert is false", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.findOne = jest.fn().mockReturnValue(Promise.resolve(null));
+    const conditional = jest.fn().mockReturnValue(Promise.resolve(true));
+    const result = await lock.conditionalOverrideLockWriter(conditional, false);
+    expect(result).toBe(false);
+    expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
+    expect(mockCollection.updateOne).not.toHaveBeenCalled();
+    expect(conditional).not.toHaveBeenCalled();
+  });
+
+  it("throws an error if the lock is not found and upsert fails", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, clientID);
+    mockCollection.findOne = jest.fn().mockReturnValue(Promise.resolve(null));
+    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ upsertedCount: 0 }));
+    const conditional = jest.fn().mockReturnValue(Promise.resolve(true));
+    await expect(lock.conditionalOverrideLockWriter(conditional, true)).rejects.toThrow(
+      `error overriding lock ${lockID}: lock not found, upsert failed`,
+    );
+    expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+      },
+      {
+        $set: {
+          writer: clientID,
+        },
+      },
+      { upsert: true },
+    );
+    expect(conditional).not.toHaveBeenCalled();
+  });
+});
