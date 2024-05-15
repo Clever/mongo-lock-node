@@ -339,7 +339,7 @@ describe("Integration Test: RWMutex", () => {
     });
   });
 
-  describe(".overrideLockWriter()", () => {
+  describe(".tryOverrideLockWriter()", () => {
     it("overrides the lock if a writer has it", async () => {
       const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
       await lock.lock();
@@ -353,7 +353,7 @@ describe("Integration Test: RWMutex", () => {
       });
 
       const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100 });
-      await lock2.overrideLockWriter();
+      await lock2.tryOverrideLockWriter(clientID);
 
       lockObject = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
@@ -367,7 +367,7 @@ describe("Integration Test: RWMutex", () => {
 
     it("upserts the lock if it doesn't exist", async () => {
       const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
-      await lock.overrideLockWriter(true);
+      await lock.tryOverrideLockWriter(clientID, true);
 
       const lockObject = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
@@ -392,7 +392,7 @@ describe("Integration Test: RWMutex", () => {
       });
 
       const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100 });
-      await lock2.overrideLockWriter();
+      await lock2.tryOverrideLockWriter("");
 
       lockObject = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
@@ -407,7 +407,7 @@ describe("Integration Test: RWMutex", () => {
     it("throws an error if there is no lock to override and upsert is false", async () => {
       const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
       try {
-        await lock.overrideLockWriter(false);
+        await lock.tryOverrideLockWriter("", false);
       } catch (err) {
         expect(err).toBeInstanceOf(Error);
         if (err instanceof Error) {

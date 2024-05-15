@@ -6,6 +6,10 @@ import { MongoError } from "mongodb";
 const lockID = "lockID";
 const clientID = "1";
 
+afterAll(() => {
+  jest.restoreAllMocks();
+});
+
 // ---------- Tests ----------
 describe("RWMutex", () => {
   describe(".lock()", () => {
@@ -348,16 +352,19 @@ describe("RWMutex", () => {
     });
   });
 });
-describe(".overrideLockWriter()", () => {
+describe(".tryOverrideLockWriter()", () => {
   it("overrides the current writer of the lock", async () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
     mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 1, upsertedCount: 0 }));
-    await lock.overrideLockWriter();
+    await lock.tryOverrideLockWriter("oldClientID", false);
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "oldClientID" });
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
       {
         lockID: lockID,
+        $or: writerQuery["$or"],
       },
       {
         $set: {
@@ -375,11 +382,14 @@ describe(".overrideLockWriter()", () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
     mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 1 }));
-    await lock.overrideLockWriter(true);
+    await lock.tryOverrideLockWriter("oldClientID", true);
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "oldClientID" });
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
       {
         lockID: lockID,
+        $or: writerQuery["$or"],
       },
       {
         $set: {
@@ -397,13 +407,16 @@ describe(".overrideLockWriter()", () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
     mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0}));
-    await expect(lock.overrideLockWriter(false)).rejects.toThrow(
+    await expect(lock.tryOverrideLockWriter("oldClientID", false)).rejects.toThrow(
       `error overriding lock ${lockID}: lock not found`,
     );
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "oldClientID" });
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
       {
         lockID: lockID,
+        $or: writerQuery["$or"],
       },
       {
         $set: {
@@ -421,13 +434,16 @@ describe(".overrideLockWriter()", () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
     mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0}));
-    await expect(lock.overrideLockWriter(true)).rejects.toThrow(
+    await expect(lock.tryOverrideLockWriter("oldClientID", true)).rejects.toThrow(
       `error overriding lock ${lockID}: lock not found, upsert failed`,
     );
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "oldClientID" });
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
       {
         lockID: lockID,
+        $or: writerQuery["$or"],
       },
       {
         $set: {
@@ -453,9 +469,12 @@ describe(".conditionalOverrideLockWriter()", () => {
     expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
     expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "oldWriter" });
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
       {
         lockID: lockID,
+        $or: writerQuery["$or"],
       },
       {
         $set: {
@@ -496,9 +515,12 @@ describe(".conditionalOverrideLockWriter()", () => {
     expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
     expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "" });
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
       {
         lockID: lockID,
+        $or: writerQuery["$or"],
       },
       {
         $set: {
@@ -538,9 +560,12 @@ describe(".conditionalOverrideLockWriter()", () => {
     expect(mockCollection.findOne).toHaveBeenCalledTimes(1);
     expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "" });
     expect(mockCollection.updateOne).toHaveBeenCalledWith(
       {
         lockID: lockID,
+        $or: writerQuery["$or"],
       },
       {
         $set: {
