@@ -234,7 +234,7 @@ export default class RWMutex {
    */
   async conditionalOverrideLockWriter(
     conditional: (oldWriter: string, newWriter: string) => Promise<boolean>,
-    upsert = false, timeout = 10000): Promise<boolean> { 
+    upsert = true, timeout = 10000): Promise<boolean> { 
     const start = Date.now();
     
     while (Date.now() - start < timeout) {

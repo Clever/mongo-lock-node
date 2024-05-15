@@ -419,9 +419,12 @@ describe("Integration Test: RWMutex", () => {
   });
 
   describe(".conditonalOverrideLockWriter()", () => {
-    const conditional = async (oldWriter: string, newWriter: string): Promise<boolean> => {
-      return oldWriter < newWriter;
-    };
+    let conditional: (oldWriter: string, newWriter: string) => Promise<boolean>;
+    beforeEach(() => { 
+      conditional = async (oldWriter: string, newWriter: string): Promise<boolean> => {
+        return oldWriter < newWriter;
+      };
+    });
 
     it("overrides the lock if the condition is met", async () => {
       const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
@@ -474,6 +477,81 @@ describe("Integration Test: RWMutex", () => {
         writer: "1",
       });
     });
+
+    it("reattempts to override the lock if the writer changed", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.lock();
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+
+      // to simulate a race condition where the writer changes we will sleep for 3 seconds
+      // before returning the result of the conditional
+      conditional = async (oldWriter: string, newWriter: string): Promise<boolean> => {
+        const successful = oldWriter < newWriter;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        return successful;
+      }
+
+      const lock2 = new RWMutex(collection, lockID, "3", { sleepTime: 100 });
+      const conditionalOverridePromise = lock2.conditionalOverrideLockWriter(conditional);
+      await collection.updateOne({ lockID }, { $set: { writer: "2" } });
+      const success = await conditionalOverridePromise;
+      expect(success).toBe(true);
+
+      lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "3",
+      });
+    }, 10000);
+
+
+    it("reattempts to override the lock if the writer changed and fails if the condition is no longer true", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });
+      await lock.lock();
+      let lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "1",
+      });
+
+      // to simulate a race condition where the writer changes we will sleep for 3 seconds
+      // before returning the result of the conditional
+      conditional = async (oldWriter: string, newWriter: string): Promise<boolean> => {
+        const successful = oldWriter < newWriter;
+        await new Promise((resolve) => setTimeout(resolve, 3000));
+        return successful;
+      }
+
+      const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100 });
+      const conditionalOverridePromise = lock2.conditionalOverrideLockWriter(conditional);
+      await collection.updateOne({ lockID }, { $set: { writer: "3" } });
+      const success = await conditionalOverridePromise;
+      expect(success).toBe(false);
+
+      lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "3",
+      });
+    }, 10000);
+
+
 
     it("upserts the lock if it doesn't exist", async () => {
       const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100 });

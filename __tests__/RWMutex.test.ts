@@ -484,7 +484,7 @@ describe(".conditionalOverrideLockWriter()", () => {
           readers: [],
         },
       },
-      { upsert: false },
+      { upsert: true },
     );
     expect(conditional).toHaveBeenCalledTimes(1);
     expect(conditional).toHaveBeenCalledWith("oldWriter", clientID);
@@ -579,4 +579,101 @@ describe(".conditionalOverrideLockWriter()", () => {
     );
     expect(conditional).not.toHaveBeenCalled();
   });
+
+  it("reattempts to override the lock if the writer changed during the conditional function", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, "3newWriter");
+    mockCollection.findOne = jest
+      .fn()
+      .mockReturnValueOnce(Promise.resolve({ writer: "1oldWriter" }))
+      .mockReturnValueOnce(Promise.resolve({ writer: "2oldWriter" }));
+    const err = new MongoError("E11000 duplicate key error collection");
+    err.code = 11000;
+    mockCollection.updateOne = jest.fn().
+      mockRejectedValueOnce(err).
+      mockReturnValueOnce(Promise.resolve({ matchedCount: 1 }));
+    const conditional = jest.fn().mockReturnValue(Promise.resolve(true));
+    const result = await lock.conditionalOverrideLockWriter(conditional);
+    expect(result).toBe(true);
+    expect(mockCollection.findOne).toHaveBeenCalledTimes(2);
+    expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
+    let writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "1oldWriter" });
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+        $or: writerQuery["$or"],
+      },
+      {
+        $set: {
+          writer: "3newWriter",
+        },
+        $setOnInsert: {
+          readers: [],
+        },
+      },
+      { upsert: true },
+    );
+    writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "2oldWriter" });
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+        $or: writerQuery["$or"],
+      },
+      {
+        $set: {
+          writer: "3newWriter",
+        },
+        $setOnInsert: {
+          readers: [],
+        },
+      },
+      { upsert: true },
+    );
+    expect(conditional).toHaveBeenCalledTimes(2);
+    expect(conditional).toHaveBeenCalledWith("1oldWriter", "3newWriter");
+    expect(conditional).toHaveBeenCalledWith("2oldWriter", "3newWriter");
+  });
+
+  it("reattempts to override the lock if the writer changed during the conditional function and fails if the conditional is no longer true", async () => {
+    const mockCollection = new MockCollection();
+    const lock = new RWMutex(mockCollection, lockID, "3newWriter");
+    mockCollection.findOne = jest
+      .fn()
+      .mockReturnValueOnce(Promise.resolve({ writer: "1oldWriter" }))
+      .mockReturnValueOnce(Promise.resolve({ writer: "2oldWriter" }));
+    const err = new MongoError("E11000 duplicate key error collection");
+    err.code = 11000;
+    mockCollection.updateOne = jest.fn().mockRejectedValueOnce(err);
+    const conditional = jest.fn().mockReturnValueOnce(Promise.resolve(true)).
+      mockReturnValueOnce(Promise.resolve(false));
+    const result = await lock.conditionalOverrideLockWriter(conditional);
+    expect(result).toBe(false);
+    expect(mockCollection.findOne).toHaveBeenCalledTimes(2);
+    expect(mockCollection.findOne).toHaveBeenCalledWith({ lockID: lockID });
+    expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: "1oldWriter" });
+    expect(mockCollection.updateOne).toHaveBeenCalledWith(
+      {
+        lockID: lockID,
+        $or: writerQuery["$or"],
+      },
+      {
+        $set: {
+          writer: "3newWriter",
+        },
+        $setOnInsert: {
+          readers: [],
+        },
+      },
+      { upsert: true },
+    );
+    expect(conditional).toHaveBeenCalledTimes(2);
+    expect(conditional).toHaveBeenCalledWith("1oldWriter", "3newWriter");
+    expect(conditional).toHaveBeenCalledWith("2oldWriter", "3newWriter");
+  });
+  
 });
