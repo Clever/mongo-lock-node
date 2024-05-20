@@ -176,18 +176,22 @@ export default class RWMutex {
     return;
   }
 
+  overrideWriterSwitchedError = "lock already held by another writer";
   /**
    * overrideLockWriter is a method that will override the current writer of the lock with the
    * clientID of the current instance of the RWMutex.
    * @param upsert determines whether or not to create a new lock if one does not exist
    * @returns void
    */
-  async overrideLockWriter(upsert = false): Promise<void> {
+  async tryOverrideLockWriter(oldWriter: string, upsert = false): Promise<void> {
     let errMsg = `error overriding lock ${this._lockID}`;
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: oldWriter });
     try { 
       const result = await this._coll.updateOne(
         {
           lockID: this._lockID,
+          $or: writerQuery["$or"],
         },
         {
           $set: {
@@ -203,7 +207,10 @@ export default class RWMutex {
         return;
       }
     } catch (err: unknown) {
-      
+      if (err instanceof MongoError && err.code === DuplicateKeyErrorCode) { 
+        errMsg += ": " + this.overrideWriterSwitchedError;
+        throw new Error(errMsg);
+      }
       if (err instanceof Error) {
         errMsg += `: ${err.message}`;
       }
@@ -227,21 +234,47 @@ export default class RWMutex {
    */
   async conditionalOverrideLockWriter(
     conditional: (oldWriter: string, newWriter: string) => Promise<boolean>,
-    upsert = false): Promise<boolean> { 
-    const mongoLock = await this._coll.findOne({ lockID: this._lockID })
-    if (!mongoLock) {
-      if (!upsert) {
-        return false;
+    upsert = true, timeout = 10000): Promise<boolean> { 
+    const start = Date.now();
+    
+    while (Date.now() - start < timeout) {
+      const mongoLock = await this._coll.findOne({ lockID: this._lockID });
+      if (!mongoLock) {
+        if (!upsert) {
+          return false;
+        }
+        try {
+          await this.tryOverrideLockWriter("", upsert);
+          return true;
+        } catch (err) {
+          if (err instanceof Error) {
+            if (err.message.includes(this.overrideWriterSwitchedError)) { 
+              await timeoutPromise(this._options.sleepTime);
+              continue;
+            }
+          }
+          throw err;
+        }
       }
-      await this.overrideLockWriter(upsert);
-      return true;
+      const conditionalResult = await conditional(mongoLock.writer, this._clientID);
+      if (conditionalResult) {
+        try {
+          await this.tryOverrideLockWriter(mongoLock.writer, upsert);
+          return true;
+        } catch (err) {
+          if (err instanceof Error) {
+            if (err.message.includes(this.overrideWriterSwitchedError)) { 
+              await timeoutPromise(this._options.sleepTime);
+              continue;
+            }
+          }
+          throw err;
+        }
+      } else { 
+        return false
+      }
     }
-    const conditionalResult = await conditional(mongoLock.writer, this._clientID);
-    if (conditionalResult) {
-      await this.overrideLockWriter(upsert);
-      return true;
-    }
-    return false;
+    throw new Error("timeout for overriding lock writer exceeded");
 }
 
   /*
