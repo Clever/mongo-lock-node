@@ -70,6 +70,7 @@ describe("RWMutex", () => {
         .mockReturnValueOnce(Promise.resolve({ upsertedCount: 1 }));
       const lock = new RWMutex(mockCollection, lockID, clientID, {
         sleepTime: 1,
+        expiresAt: null,
       });
       await lock.lock();
       const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
@@ -94,6 +95,7 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       const lock = new RWMutex(mockCollection, lockID, clientID, {
         sleepTime: 1,
+        expiresAt: null,
       });
       mockCollection.updateOne = jest
         .fn()
@@ -226,6 +228,7 @@ describe("RWMutex", () => {
         .mockReturnValueOnce(Promise.resolve({ upsertedCount: 1 }));
       const lock = new RWMutex(mockCollection, lockID, clientID, {
         sleepTime: 1,
+        expiresAt: null,
       });
       await lock.rLock();
       expect(mockCollection.updateOne).toHaveBeenCalledTimes(2);
@@ -250,6 +253,7 @@ describe("RWMutex", () => {
       const mockCollection = new MockCollection();
       const lock = new RWMutex(mockCollection, lockID, clientID, {
         sleepTime: 1,
+        expiresAt: null,
       });
       mockCollection.updateOne = jest
         .fn()

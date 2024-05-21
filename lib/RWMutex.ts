@@ -11,6 +11,7 @@ export interface MongoLock {
   lockID: string;
   readers: string[];
   writer: string;
+  expiresAt?: Date;
 }
 
 export interface MongoLockCollection {
@@ -63,7 +64,7 @@ export default class RWMutex {
   _coll: MongoLockCollection;
   _lockID: string;
   _clientID: string;
-  _options: { sleepTime: number };
+  _options: { sleepTime: number, expiresAt: Date | null};
 
   /*
    * Creates a new RWMutex
@@ -76,7 +77,7 @@ export default class RWMutex {
     coll: MongoLockCollection,
     lockID: string,
     clientID: string,
-    options = { sleepTime: 1000 },
+    options = { sleepTime: 1000, expiresAt: null},
   ) {
     this._coll = coll;
     this._lockID = lockID;
@@ -103,17 +104,21 @@ export default class RWMutex {
         // this will throw an error which will be caught.  We will then retry.
         const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
         writerQuery["$or"].push({ writer: this._clientID });
+        const update = {
+          $set: {
+            writer: this._clientID,
+            readers: [],
+          },
+        };
+        if (this._options.expiresAt) {
+          update["$setOnInsert"] = { expiresAt: this._options.expiresAt };
+        }
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
             $and: [emptyReadersQuery, writerQuery],
           },
-          {
-            $set: {
-              writer: this._clientID,
-              readers: [],
-            },
-          },
+          update,
           { upsert: true },
         );
         if (result.matchedCount > 0 || result.upsertedCount > 0) {
@@ -187,20 +192,24 @@ export default class RWMutex {
     let errMsg = `error overriding lock ${this._lockID}`;
     const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
     writerQuery["$or"].push({ writer: oldWriter });
+    const update = {
+      $set: {
+        writer: this._clientID,
+      },
+      $setOnInsert: {
+        readers: [],
+      },
+    };
+    if (this._options.expiresAt) {
+      update["$setOnInsert"]["expiresAt"] = this._options.expiresAt;
+    }
     try { 
       const result = await this._coll.updateOne(
         {
           lockID: this._lockID,
           $or: writerQuery["$or"],
         },
-        {
-          $set: {
-            writer: this._clientID,
-          },
-          $setOnInsert: {
-            readers: [],
-          },
-        },
+        update,
         { upsert: upsert },
       );
       if (result.matchedCount > 0 || result.upsertedCount > 0) {
@@ -294,19 +303,23 @@ export default class RWMutex {
         // to the readers list
         // If a lock exists with this lockID with a writer, this will throw an error which will be
         // caught.  We will then retry.
+        const update = {
+          $set: {
+            writer: "",
+          },
+          $addToSet: {
+            readers: this._clientID,
+          },
+        };
+        if (this._options.expiresAt) {
+          update["$setOnInsert"] = { expiresAt: this._options.expiresAt };
+        }
         const result = await this._coll.updateOne(
           {
             lockID: this._lockID,
             $or: emptyWriterQuery["$or"],
           },
-          {
-            $set: {
-              writer: "",
-            },
-            $addToSet: {
-              readers: this._clientID,
-            },
-          },
+          update,
           { upsert: true },
         );
         if (result.matchedCount > 0 || result.upsertedCount > 0) {
