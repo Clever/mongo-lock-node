@@ -39,11 +39,15 @@ describe("Integration Test: RWMutex", () => {
             writer: {
               bsonType: "string",
             },
+            expiresAt: {
+              bsonType: "date",
+            },
           },
         },
       },
     });
     await collection.createIndex("lockID", { unique: true });
+    await collection.createIndex("expiresAt", { expireAfterSeconds: 0 });
   });
 
   // Must close the connection or jest will hang
@@ -186,6 +190,71 @@ describe("Integration Test: RWMutex", () => {
         writer: "2",
       });
     });
+
+    it("expires the lock after the expiresAt time", async () => {
+      const lock = new RWMutex(
+        collection,
+        lockID,
+        clientID,
+        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      await lock.lock();
+      const lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: clientID,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 90000));
+      const expiredLock = await collection.findOne({ lockID });
+      return expect(expiredLock).toBeNull();
+    }, 120000);
+
+    it("acquires the lock if the old lock has expired", async () => {
+      const lock = new RWMutex(
+        collection,
+        lockID,
+        clientID,
+        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      await lock.lock();
+
+      const lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: clientID,
+      });
+
+      const lock2 = new RWMutex(
+        collection,
+        lockID,
+        "2",
+        { sleepTime: 100, expiresAt: null });
+      lock2.lock();
+      let lockObject2 = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [],
+        writer: clientID,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 90000));
+      lockObject2 = await collection.findOne({ lockID });
+      expect(lockObject2).not.toBeNull();
+      delete lockObject2._id;
+      return expect(lockObject2).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "2",
+      });
+
+    }, 120000);
   });
 
   describe(".rLock()", () => {
@@ -337,6 +406,71 @@ describe("Integration Test: RWMutex", () => {
         writer: "",
       });
     });
+
+    it("expires the lock after the expiresAt time", async () => {
+      const lock = new RWMutex(
+        collection,
+        lockID,
+        clientID,
+        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      await lock.rLock();
+      const lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [clientID],
+        writer: "",
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 90000));
+      const expiredLock = await collection.findOne({ lockID });
+      return expect(expiredLock).toBeNull();
+    }, 120000);
+
+    it("acquires the lock if the old lock has expired", async () => {
+      const lock = new RWMutex(
+        collection,
+        lockID,
+        clientID,
+        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      await lock.rLock();
+
+      const lockObject = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [clientID],
+        writer: "",
+      });
+
+      const lock2 = new RWMutex(
+        collection,
+        lockID,
+        "2",
+        { sleepTime: 100, expiresAt: null });
+      lock2.lock();
+      let lockObject2 = await collection.findOne({ lockID });
+      expect(lockObject).not.toBeNull();
+      delete lockObject._id;
+      expect(lockObject).toMatchObject({
+        lockID,
+        readers: [clientID],
+        writer: "",
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 90000));
+      lockObject2 = await collection.findOne({ lockID });
+      expect(lockObject2).not.toBeNull();
+      delete lockObject2._id;
+      return expect(lockObject2).toMatchObject({
+        lockID,
+        readers: [],
+        writer: "2",
+      });
+
+    }, 120000);    
   });
 
   describe(".tryOverrideLockWriter()", () => {
