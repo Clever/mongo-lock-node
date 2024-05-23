@@ -1,5 +1,5 @@
 import { Collection as MongoCollection, MongoClient } from "mongodb";
-import { RWMutex, MongoLock } from "../lib/RWMutex.js";
+import { RWMutex, MongoLock } from "../lib/RWMutex";
 const MONGO_URL = "mongodb://127.0.0.1:27017/test";
 const lockID = "lockID";
 const clientID = "1";
