@@ -60,7 +60,7 @@ export const DuplicateKeyErrorCode = 11000;
  * 3. Manual setup. This library does not currently support setup. The collection you pass to the
  *    constructor must have a unique index on the `lockID` field.
  */
-export default class RWMutex {
+export class RWMutex {
   _coll: MongoLockCollection;
   _lockID: string;
   _clientID: string;

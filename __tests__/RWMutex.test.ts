@@ -1,4 +1,4 @@
-import RWMutex, { emptyReadersQuery, emptyWriterQuery } from "../lib/RWMutex";
+import { RWMutex, emptyReadersQuery, emptyWriterQuery } from "../lib/RWMutex";
 import MockCollection from "../__mocks__/MockCollection";
 import { MongoError } from "mongodb";
 
