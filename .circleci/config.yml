@@ -4,7 +4,7 @@ jobs:
     working_directory: ~/Clever/mongo-lock-node
     docker:
     - image: cimg/node:18.16
-    - image: mongo:6.0
+    - image: mongo:7.0
     environment:
       CIRCLE_ARTIFACTS: /tmp/circleci-artifacts
       CIRCLE_TEST_REPORTS: /tmp/circleci-test-results
