@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["dom", "es2019"],
+    "lib": ["dom", "es2019", "esnext.disposable"],
     "module": "commonjs",
     "resolveJsonModule": true,
     "target": "es5",
