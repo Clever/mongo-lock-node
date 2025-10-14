@@ -2,7 +2,7 @@ include node.mk
 .PHONY: all test build lint
 SHELL := /bin/bash
 
-NODE_VERSION := "v18"
+NODE_VERSION := "v24"
 
 TS_FILES := $(shell find . -name "*.ts" -not -path "./node_modules/*" -not -name "*numbro-polyfill.ts")
 FORMATTED_FILES := $(TS_FILES) # Add other file types as you see fit, e.g. JSON files, config files
