@@ -54,6 +54,45 @@ describe("Integration Test: RWMutex", () => {
   // Reset the collection before each test
   beforeEach(() => collection.deleteMany({}));
 
+  describe(".tryLock()", () => {
+    it("acquires a free lock", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100, expiresAt: null });
+      await expect(lock.tryLock()).resolves.toBe(true);
+      await expect(collection.findOne({ lockID })).resolves.toMatchObject({ writer: "1" });
+    });
+
+    it("returns false and leaves the lock alone when another writer holds it", async () => {
+      const holder = new RWMutex(collection, lockID, "2", { sleepTime: 100, expiresAt: null });
+      await holder.lock();
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100, expiresAt: null });
+      await expect(lock.tryLock()).resolves.toBe(false);
+      await expect(collection.findOne({ lockID })).resolves.toMatchObject({
+        readers: [],
+        writer: "2",
+      });
+    });
+
+    it("returns false when a reader holds the lock", async () => {
+      const reader = new RWMutex(collection, lockID, "2", { sleepTime: 100, expiresAt: null });
+      await reader.rLock();
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100, expiresAt: null });
+      await expect(lock.tryLock()).resolves.toBe(false);
+    });
+
+    it("re-enters a lock the client already holds", async () => {
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100, expiresAt: null });
+      await lock.lock();
+      await expect(lock.tryLock()).resolves.toBe(true);
+    });
+
+    it("sets expiresAt on the lock it creates", async () => {
+      const expiresAt = new Date(Date.now() + 60 * 60 * 1000);
+      const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100, expiresAt });
+      await lock.tryLock();
+      await expect(collection.findOne({ lockID })).resolves.toMatchObject({ expiresAt });
+    });
+  });
+
   describe(".lock()", () => {
     it("inserts a lock if none exists", async () => {
       const lock = new RWMutex(collection, lockID, clientID, { sleepTime: 100, expiresAt: null });

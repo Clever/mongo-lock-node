@@ -86,55 +86,56 @@ export class RWMutex {
   }
 
   /*
+   * Tries once to acquire the write lock, like mongo-lock-go's TryLock.
+   * @return {Promise<boolean>} - Resolves true if the lock is acquired, false if another client
+   * holds it; rejects if an error occurs
+   */
+  async tryLock(): Promise<boolean> {
+    // If no such lock exists, this will create it
+    // If a lock exists with this lockID with no readers and no writer, this will update it
+    // If a lock exists with this lockID with clientID as the writer and no readers,
+    // this will do nothing
+    // If a lock exists with this lockID with a different clientID as the writer or readers,
+    // the upsert hits the unique index on lockID and throws a duplicate key error
+    const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
+    writerQuery["$or"].push({ writer: this._clientID });
+    const update = {
+      $set: {
+        writer: this._clientID,
+        readers: [],
+      },
+    };
+    if (this._options.expiresAt) {
+      update["$setOnInsert"] = { expiresAt: this._options.expiresAt };
+    }
+    try {
+      const result = await this._coll.updateOne(
+        {
+          lockID: this._lockID,
+          $and: [emptyReadersQuery, writerQuery],
+        },
+        update,
+        { upsert: true },
+      );
+      return result.matchedCount > 0 || result.upsertedCount > 0;
+    } catch (err) {
+      if (err instanceof MongoError && err.code === DuplicateKeyErrorCode) {
+        return false;
+      }
+      let errMsg = `error acquiring lock ${this._lockID}`;
+      if (err instanceof Error) {
+        errMsg += `: ${err.message}`;
+      }
+      throw new Error(errMsg);
+    }
+  }
+
+  /*
    * Acquires the write lock.
    * @return {Promise} - Promise that resolves when the lock is acquired, rejects if an error occurs
    */
   async lock(): Promise<void> {
-    // Loop and do the following:
-    // 1. attempt to acquire the lock (must have no readers and no writer)
-    // 2. if not acquired, sleep and retry
-    let acquired = false;
-    while (!acquired) {
-      try {
-        // If no such lock exists, this will create it
-        // If a lock exists with this lockID with no readers and no writer, this will update it
-        // If a lock exists with this lockID with clientID as the writer and no readers,
-        // this will do nothing
-        // If a lock exists with this lockID with a different clientID as the writer or readers,
-        // this will throw an error which will be caught.  We will then retry.
-        const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
-        writerQuery["$or"].push({ writer: this._clientID });
-        const update = {
-          $set: {
-            writer: this._clientID,
-            readers: [],
-          },
-        };
-        if (this._options.expiresAt) {
-          update["$setOnInsert"] = { expiresAt: this._options.expiresAt };
-        }
-        const result = await this._coll.updateOne(
-          {
-            lockID: this._lockID,
-            $and: [emptyReadersQuery, writerQuery],
-          },
-          update,
-          { upsert: true },
-        );
-        if (result.matchedCount > 0 || result.upsertedCount > 0) {
-          acquired = true;
-          return;
-        }
-      } catch (err) {
-        if (!(err instanceof MongoError) || err.code !== DuplicateKeyErrorCode) {
-          let errMsg = `error acquiring lock ${this._lockID}`;
-          if (err instanceof Error) {
-            errMsg += `: ${err.message}`;
-          }
-          throw new Error(errMsg);
-        }
-      }
-
+    while (!(await this.tryLock())) {
       await timeoutPromise(this._options.sleepTime);
     }
   }

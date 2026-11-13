@@ -120,6 +120,52 @@ describe("RWMutex", () => {
     });
   });
 
+  describe(".tryLock()", () => {
+    it("returns true when it acquires the lock", async () => {
+      const mockCollection = new MockCollection();
+      mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ upsertedCount: 1 }));
+      const lock = new RWMutex(mockCollection, lockID, clientID);
+      await expect(lock.tryLock()).resolves.toBe(true);
+      expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    });
+
+    it("returns true when the client already has the lock", async () => {
+      const mockCollection = new MockCollection();
+      const lock = new RWMutex(mockCollection, lockID, clientID);
+      await expect(lock.tryLock()).resolves.toBe(true);
+    });
+
+    it("returns false without retrying when another client holds the lock", async () => {
+      const mockCollection = new MockCollection();
+      const err = new MongoError("E11000 duplicate key error collection");
+      err.code = 11000;
+      mockCollection.updateOne = jest.fn().mockRejectedValue(err);
+      const lock = new RWMutex(mockCollection, lockID, clientID);
+      await expect(lock.tryLock()).resolves.toBe(false);
+      expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
+    });
+
+    it("sets expiresAt only when it creates the lock", async () => {
+      const mockCollection = new MockCollection();
+      const expiresAt = new Date("2026-01-01T00:00:00Z");
+      const lock = new RWMutex(mockCollection, lockID, clientID, { sleepTime: 1, expiresAt });
+      await lock.tryLock();
+      expect(mockCollection.updateOne.mock.calls[0][1]).toEqual({
+        $set: { writer: clientID, readers: [] },
+        $setOnInsert: { expiresAt },
+      });
+    });
+
+    it("rejects on other errors", async () => {
+      const mockCollection = new MockCollection();
+      mockCollection.updateOne = jest.fn().mockRejectedValue(new Error("connection interrupted"));
+      const lock = new RWMutex(mockCollection, lockID, clientID);
+      await expect(lock.tryLock()).rejects.toThrow(
+        "error acquiring lock lockID: connection interrupted",
+      );
+    });
+  });
+
   describe(".unlock()", () => {
     it("releases the lock", async () => {
       const mockCollection = new MockCollection();
