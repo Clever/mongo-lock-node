@@ -190,11 +190,10 @@ describe("Integration Test: RWMutex", () => {
     });
 
     it("expires the lock after the expiresAt time", async () => {
-      const lock = new RWMutex(
-        collection,
-        lockID,
-        clientID,
-        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      const lock = new RWMutex(collection, lockID, clientID, {
+        sleepTime: 100,
+        expiresAt: new Date(Date.now() + 5000),
+      });
       await lock.lock();
       const lockObject = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
@@ -211,11 +210,10 @@ describe("Integration Test: RWMutex", () => {
     }, 120000);
 
     it("acquires the lock if the old lock has expired", async () => {
-      const lock = new RWMutex(
-        collection,
-        lockID,
-        clientID,
-        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      const lock = new RWMutex(collection, lockID, clientID, {
+        sleepTime: 100,
+        expiresAt: new Date(Date.now() + 5000),
+      });
       await lock.lock();
 
       const lockObject = await collection.findOne({ lockID });
@@ -227,11 +225,7 @@ describe("Integration Test: RWMutex", () => {
         writer: clientID,
       });
 
-      const lock2 = new RWMutex(
-        collection,
-        lockID,
-        "2",
-        { sleepTime: 100, expiresAt: null });
+      const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100, expiresAt: null });
       lock2.lock();
       let lockObject2 = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
@@ -251,7 +245,6 @@ describe("Integration Test: RWMutex", () => {
         readers: [],
         writer: "2",
       });
-
     }, 120000);
   });
 
@@ -406,11 +399,10 @@ describe("Integration Test: RWMutex", () => {
     });
 
     it("expires the lock after the expiresAt time", async () => {
-      const lock = new RWMutex(
-        collection,
-        lockID,
-        clientID,
-        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      const lock = new RWMutex(collection, lockID, clientID, {
+        sleepTime: 100,
+        expiresAt: new Date(Date.now() + 5000),
+      });
       await lock.rLock();
       const lockObject = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
@@ -427,11 +419,10 @@ describe("Integration Test: RWMutex", () => {
     }, 120000);
 
     it("acquires the lock if the old lock has expired", async () => {
-      const lock = new RWMutex(
-        collection,
-        lockID,
-        clientID,
-        { sleepTime: 100, expiresAt: new Date(Date.now() + 5000) });
+      const lock = new RWMutex(collection, lockID, clientID, {
+        sleepTime: 100,
+        expiresAt: new Date(Date.now() + 5000),
+      });
       await lock.rLock();
 
       const lockObject = await collection.findOne({ lockID });
@@ -443,11 +434,7 @@ describe("Integration Test: RWMutex", () => {
         writer: "",
       });
 
-      const lock2 = new RWMutex(
-        collection,
-        lockID,
-        "2",
-        { sleepTime: 100, expiresAt: null });
+      const lock2 = new RWMutex(collection, lockID, "2", { sleepTime: 100, expiresAt: null });
       lock2.lock();
       let lockObject2 = await collection.findOne({ lockID });
       expect(lockObject).not.toBeNull();
@@ -467,8 +454,7 @@ describe("Integration Test: RWMutex", () => {
         readers: [],
         writer: "2",
       });
-
-    }, 120000);    
+    }, 120000);
   });
 
   describe(".tryOverrideLockWriter()", () => {

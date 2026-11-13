@@ -64,7 +64,7 @@ export class RWMutex {
   _coll: MongoLockCollection;
   _lockID: string;
   _clientID: string;
-  _options: { sleepTime: number, expiresAt: Date | null};
+  _options: { sleepTime: number; expiresAt: Date | null };
 
   /*
    * Creates a new RWMutex
@@ -77,7 +77,7 @@ export class RWMutex {
     coll: MongoLockCollection,
     lockID: string,
     clientID: string,
-    options = { sleepTime: 1000, expiresAt: null},
+    options = { sleepTime: 1000, expiresAt: null },
   ) {
     this._coll = coll;
     this._lockID = lockID;
@@ -203,7 +203,7 @@ export class RWMutex {
     if (this._options.expiresAt) {
       update["$setOnInsert"]["expiresAt"] = this._options.expiresAt;
     }
-    try { 
+    try {
       const result = await this._coll.updateOne(
         {
           lockID: this._lockID,
@@ -216,7 +216,7 @@ export class RWMutex {
         return;
       }
     } catch (err: unknown) {
-      if (err instanceof MongoError && err.code === DuplicateKeyErrorCode) { 
+      if (err instanceof MongoError && err.code === DuplicateKeyErrorCode) {
         errMsg += ": " + this.overrideWriterSwitchedError;
         throw new Error(errMsg);
       }
@@ -234,7 +234,7 @@ export class RWMutex {
   }
 
   /**
-   * conditionalOverrideLockWriter is a method that will override the current writer of the lock with the 
+   * conditionalOverrideLockWriter is a method that will override the current writer of the lock with the
    * clientID of the current instance of the RWMutex if the conditional function returns true.
    * @param conditional returns a boolean value based on some comparison of the current lockID in the database and
    * the lockID of the current instance of the RWMutex
@@ -243,9 +243,11 @@ export class RWMutex {
    */
   async conditionalOverrideLockWriter(
     conditional: (oldWriter: string, newWriter: string) => Promise<boolean>,
-    upsert = true, timeout = 10000): Promise<boolean> { 
+    upsert = true,
+    timeout = 10000,
+  ): Promise<boolean> {
     const start = Date.now();
-    
+
     while (Date.now() - start < timeout) {
       const mongoLock = await this._coll.findOne({ lockID: this._lockID });
       if (!mongoLock) {
@@ -257,7 +259,7 @@ export class RWMutex {
           return true;
         } catch (err) {
           if (err instanceof Error) {
-            if (err.message.includes(this.overrideWriterSwitchedError)) { 
+            if (err.message.includes(this.overrideWriterSwitchedError)) {
               await timeoutPromise(this._options.sleepTime);
               continue;
             }
@@ -272,19 +274,19 @@ export class RWMutex {
           return true;
         } catch (err) {
           if (err instanceof Error) {
-            if (err.message.includes(this.overrideWriterSwitchedError)) { 
+            if (err.message.includes(this.overrideWriterSwitchedError)) {
               await timeoutPromise(this._options.sleepTime);
               continue;
             }
           }
           throw err;
         }
-      } else { 
-        return false
+      } else {
+        return false;
       }
     }
     throw new Error("timeout for overriding lock writer exceeded");
-}
+  }
 
   /*
    * Acquires the read lock.

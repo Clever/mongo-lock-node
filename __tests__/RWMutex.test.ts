@@ -146,7 +146,7 @@ describe("RWMutex", () => {
         await lock.unlock();
       } catch (err) {
         expect(err).toBeInstanceOf(Error);
-        if (err instanceof Error) { 
+        if (err instanceof Error) {
           expect(err.message).toBe("lock lockID not currently held by client: 1");
         }
         expect(mockCollection.deleteOne).toHaveBeenCalledTimes(1);
@@ -360,7 +360,9 @@ describe(".tryOverrideLockWriter()", () => {
   it("overrides the current writer of the lock", async () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
-    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 1, upsertedCount: 0 }));
+    mockCollection.updateOne = jest
+      .fn()
+      .mockReturnValue(Promise.resolve({ matchedCount: 1, upsertedCount: 0 }));
     await lock.tryOverrideLockWriter("oldClientID", false);
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
     const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
@@ -385,7 +387,9 @@ describe(".tryOverrideLockWriter()", () => {
   it("creates a new lock if one does not exist", async () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
-    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 1 }));
+    mockCollection.updateOne = jest
+      .fn()
+      .mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 1 }));
     await lock.tryOverrideLockWriter("oldClientID", true);
     expect(mockCollection.updateOne).toHaveBeenCalledTimes(1);
     const writerQuery = JSON.parse(JSON.stringify(emptyWriterQuery));
@@ -410,7 +414,9 @@ describe(".tryOverrideLockWriter()", () => {
   it("throws an error if the lock is not found and upsert is false", async () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
-    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0}));
+    mockCollection.updateOne = jest
+      .fn()
+      .mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0 }));
     await expect(lock.tryOverrideLockWriter("oldClientID", false)).rejects.toThrow(
       `error overriding lock ${lockID}: lock not found`,
     );
@@ -437,7 +443,9 @@ describe(".tryOverrideLockWriter()", () => {
   it("throws an error if the lock is not found and upsert fails", async () => {
     const mockCollection = new MockCollection();
     const lock = new RWMutex(mockCollection, lockID, clientID);
-    mockCollection.updateOne = jest.fn().mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0}));
+    mockCollection.updateOne = jest
+      .fn()
+      .mockReturnValue(Promise.resolve({ matchedCount: 0, upsertedCount: 0 }));
     await expect(lock.tryOverrideLockWriter("oldClientID", true)).rejects.toThrow(
       `error overriding lock ${lockID}: lock not found, upsert failed`,
     );
@@ -593,9 +601,10 @@ describe(".conditionalOverrideLockWriter()", () => {
       .mockReturnValueOnce(Promise.resolve({ writer: "2oldWriter" }));
     const err = new MongoError("E11000 duplicate key error collection");
     err.code = 11000;
-    mockCollection.updateOne = jest.fn().
-      mockRejectedValueOnce(err).
-      mockReturnValueOnce(Promise.resolve({ matchedCount: 1 }));
+    mockCollection.updateOne = jest
+      .fn()
+      .mockRejectedValueOnce(err)
+      .mockReturnValueOnce(Promise.resolve({ matchedCount: 1 }));
     const conditional = jest.fn().mockReturnValue(Promise.resolve(true));
     const result = await lock.conditionalOverrideLockWriter(conditional);
     expect(result).toBe(true);
@@ -651,8 +660,10 @@ describe(".conditionalOverrideLockWriter()", () => {
     const err = new MongoError("E11000 duplicate key error collection");
     err.code = 11000;
     mockCollection.updateOne = jest.fn().mockRejectedValueOnce(err);
-    const conditional = jest.fn().mockReturnValueOnce(Promise.resolve(true)).
-      mockReturnValueOnce(Promise.resolve(false));
+    const conditional = jest
+      .fn()
+      .mockReturnValueOnce(Promise.resolve(true))
+      .mockReturnValueOnce(Promise.resolve(false));
     const result = await lock.conditionalOverrideLockWriter(conditional);
     expect(result).toBe(false);
     expect(mockCollection.findOne).toHaveBeenCalledTimes(2);
@@ -679,5 +690,4 @@ describe(".conditionalOverrideLockWriter()", () => {
     expect(conditional).toHaveBeenCalledWith("1oldWriter", "3newWriter");
     expect(conditional).toHaveBeenCalledWith("2oldWriter", "3newWriter");
   });
-  
 });
