@@ -18,7 +18,6 @@ module.exports = {
     "plugin:@typescript-eslint/recommended",
     // https://github.com/prettier/eslint-config-prettier
     "prettier",
-    "prettier/@typescript-eslint",
   ],
   parser: "@typescript-eslint/parser",
   parserOptions: {
