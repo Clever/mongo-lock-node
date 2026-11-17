@@ -35,6 +35,12 @@ console.log("doing important things...");
 // release the write lock
 await lock.unlock();
 
+// or try once, without waiting: false if another client holds the lock
+if (await lock.tryLock()) {
+  // ...
+  await lock.unlock();
+}
+
 // acquire the read lock
 await lock.rLock();
 // other clients can also acquire a read lock, no clients can acquire the write lock
